@@ -1,28 +1,37 @@
 package me.alex;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.*;
 import java.nio.file.Paths;
 
 public class ConfigurationValues {
     private static ConfigurationValues instance;
-    public long[] exemptionList;
+    public Long[] exemptionList;
     public int weeksOfData;
     public long roleId;
     public long serverId;
     private ConfigurationValues() {
+    }
+
+    public static synchronized ConfigurationValues getInstance() {
+        if(instance == null){
+            instance = new ConfigurationValues();
+        }
         try {
             String workingDir = Paths.get("").toAbsolutePath().toString();
             File f = new File(workingDir + "\\conf.json");
             if (f.createNewFile()) {
                 BufferedWriter bufferedWriter = new BufferedWriter(new PrintWriter(f));
-                exemptionList = new long[]{266279893543682049L, 230336110637744131L};
-                weeksOfData = 2;
-                roleId = 706554375572684860L;
-                serverId = 679434326282207238L;
-                Gson gson = new Gson();
-                bufferedWriter.write(gson.toJson(this));
+                // bufferedWriter.write("{\"exemptionList\":[479285497487949853, 230336110637744131],\"weeksOfData\":2,\"roleId\":706554375572684860,\"serverId\":679434326282207238}");
+                instance.exemptionList = new Long[]{266279893543682049L, 230336110637744131L};
+                instance.weeksOfData = 2;
+                instance.roleId = 706554375572684860L;
+                instance.serverId = 679434326282207238L;
+                Gson gson = new GsonBuilder().setPrettyPrinting().create();
+                bufferedWriter.write(gson.toJson(instance));
+                bufferedWriter.close();
                 throw new InvalidConfigurationException("Created new configuration file, please edit before restarting the program!");
             }
             BufferedReader bufferedReader = new BufferedReader(new FileReader(f));
@@ -32,15 +41,10 @@ public class ConfigurationValues {
                 config.append(line);
             }
             Gson gson = new Gson();
-            gson.fromJson(config.toString(), this.getClass());
+            instance = gson.fromJson(config.toString(), instance.getClass());
         } catch (IOException e) {
             e.printStackTrace();
-        }
-    }
-
-    public static synchronized ConfigurationValues getInstance(){
-        if(instance == null){
-            instance = new ConfigurationValues();
+            return null;
         }
         return instance;
     }

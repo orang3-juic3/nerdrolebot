@@ -1,24 +1,24 @@
 package me.alex.sql;
 
 
+import me.alex.ConfigurationValues;
+
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
-
+    private final ConfigurationValues configurationValues;
     private boolean inQueue = false;
     private boolean safeToAccess = true;
     private final ArrayList<ScoreMapReadyListener> scoreMapReadyListeners = new ArrayList<>();
     private final DatabaseConnectionManager databaseConnectionManager;
-    private final long twoWeeksInMillis = (long) 1.21e+9;
 
     public void addListener(ScoreMapReadyListener scoreMapReadyListener) {
         scoreMapReadyListeners.add(scoreMapReadyListener);
     }
-
-    public RoleUpdateQuery(DatabaseConnectionManager databaseConnectionManager) {
+    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseConnectionManager databaseConnectionManager) {
+        this.configurationValues = configurationValues;
         databaseConnectionManager.addListener(this);
         this.databaseConnectionManager = databaseConnectionManager;
     }
@@ -67,15 +67,17 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
         try {
             conn = DriverManager.getConnection(url);
             if (conn != null) {
-                String sql = "SELECT DISTINCT id FROM messages WHERE time >= " + System.currentTimeMillis() + " - " + twoWeeksInMillis;
+                long weekInMillis = (long) 6.048e+8;
+                String sql = "SELECT DISTINCT id FROM messages WHERE time >= " + System.currentTimeMillis() + " - " + (weekInMillis * configurationValues.weeksOfData);
                 Statement statement = conn.createStatement();
                 statement.execute(sql);
                 ResultSet resultSet = statement.getResultSet();
                 while (resultSet.next()) {
-                    scoreMap.put(resultSet.getLong("id"), null);
+                    long id = resultSet.getLong("id");
+                    if (!Arrays.asList(configurationValues.exemptionList).contains(id)) scoreMap.put(id, null);
                 }
                 for (long i : scoreMap.keySet()) {
-                    sql = String.format("SELECT count(id) FROM messages WHERE time >= %s - %s and id = %s", System.currentTimeMillis(), twoWeeksInMillis, i);
+                    sql = String.format("SELECT count(id) FROM messages WHERE time >= %s - %s and id = %s", System.currentTimeMillis(), (weekInMillis * configurationValues.weeksOfData), i);
                     statement = conn.createStatement();
                     statement.execute(sql);
                     resultSet = statement.getResultSet();

@@ -22,15 +22,18 @@ public class Main {
         try {
             firstTimeDatabaseSetup();
             ConfigurationValues configurationValues = ConfigurationValues.getInstance();
+            if (configurationValues == null) {
+                System.exit(1);
+            }
             JDA jda;
             JDABuilder jdaBuilder = JDABuilder.createDefault("token");
             jda = jdaBuilder.build();
             jda.awaitReady();
             DatabaseConnectionManager databaseConnectionManager = new DatabaseConnectionManager();
-            RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseConnectionManager);
-            roleUpdateQuery.addListener(new RoleUpdater(jda));
+            RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseConnectionManager);
+            roleUpdateQuery.addListener(new RoleUpdater(jda, configurationValues));
             roleUpdateQuery.run();
-        } catch (LoginException | IOException | InterruptedException e) {
+        } catch (LoginException | InterruptedException | IOException e) {
             e.printStackTrace();
         }
     }

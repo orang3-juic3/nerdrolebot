@@ -7,10 +7,13 @@ import net.dv8tion.jda.api.entities.User;
 import java.util.HashMap;
 
 public class RoleUpdater implements ScoreMapReadyListener {
+
     private final JDA jda;
+
     public RoleUpdater(JDA jda) {
         this.jda = jda;
     }
+
     @Override
     public void onScoreMapReadyEvent(HashMap<Long, Long> scoreMap) {
         long avg = scoreMap.values().stream().mapToLong(Long::longValue).sum() / scoreMap.values().size();

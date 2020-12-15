@@ -7,17 +7,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
+
     private boolean inQueue = false;
     private boolean safeToAccess = true;
     private final ArrayList<ScoreMapReadyListener> scoreMapReadyListeners = new ArrayList<>();
     private final DatabaseConnectionManager databaseConnectionManager;
+    private final long twoWeeksInMillis = (long) 1.21e+9;
+
     public void addListener(ScoreMapReadyListener scoreMapReadyListener) {
         scoreMapReadyListeners.add(scoreMapReadyListener);
     }
+
     public RoleUpdateQuery(DatabaseConnectionManager databaseConnectionManager) {
         databaseConnectionManager.addListener(this);
         this.databaseConnectionManager = databaseConnectionManager;
     }
+
     @Override
     public void run() {
         if (safeToAccess) {
@@ -62,7 +67,6 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
         try {
             conn = DriverManager.getConnection(url);
             if (conn != null) {
-                long twoWeeksInMillis = (long) 1.21e+9;
                 String sql = "SELECT DISTINCT id FROM messages WHERE time >= " + System.currentTimeMillis() + " - " + twoWeeksInMillis;
                 Statement statement = conn.createStatement();
                 statement.execute(sql);

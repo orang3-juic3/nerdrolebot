@@ -10,13 +10,13 @@ public class DatabaseConnectionManager {
         databaseAccessListeners.add(databaseAccessListener);
     }
 
-    public void notifyAccess() {
+    synchronized public void notifyAccess() {
         for (DatabaseAccessListener i : databaseAccessListeners) {
             i.onDatabaseAccessEvent();
         }
     }
 
-    public void notifyStopAccess() {
+    synchronized public void notifyStopAccess() {
         for (DatabaseAccessListener i : databaseAccessListeners) {
             i.onDatabaseStopAccessEvent();
         }

@@ -2,15 +2,17 @@ package me.alex.sql;
 
 
 import me.alex.ConfigurationValues;
+import me.alex.InputThread;
 
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
 
-public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
+public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputThread.Close {
     private final ConfigurationValues configurationValues;
     private boolean inQueue = false;
     private boolean safeToAccess = true;
+    private boolean execute = true;
     private final ArrayList<ScoreMapReadyListener> scoreMapReadyListeners = new ArrayList<>();
     private final DatabaseConnectionManager databaseConnectionManager;
 
@@ -25,29 +27,30 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
 
     @Override
     public void run() {
-        if (safeToAccess) {
-            inQueue = false;
-            databaseConnectionManager.notifyAccess();
-            setScoreMap();
-            databaseConnectionManager.notifyStopAccess();
-            try {
-                Thread.sleep(120000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+        while (execute) {
+            if (safeToAccess) {
+                inQueue = false;
+                databaseConnectionManager.notifyAccess();
+                setScoreMap();
+                databaseConnectionManager.notifyStopAccess();
+                try {
+                    Thread.sleep(120000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            } else {
+                inQueue = true;
             }
-        } else {
-            inQueue = true;
         }
     }
 
     @Override
-    public void onDatabaseAccessEvent() {
+    synchronized public void onDatabaseAccessEvent() {
         safeToAccess = false;
     }
 
     @Override
-    public void onDatabaseStopAccessEvent()  {
-        safeToAccess = true;
+    synchronized public void onDatabaseStopAccessEvent()  {
         if (inQueue) {
             databaseConnectionManager.notifyAccess();
             setScoreMap();
@@ -58,8 +61,10 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
                 e.printStackTrace();
             }
         }
+        safeToAccess = true;
+
     }
-    public void setScoreMap() {
+    private void setScoreMap() {
         HashMap<Long, Long> scoreMap = new HashMap<>();
         String workingDir = Paths.get("").toAbsolutePath().toString();
         String url = "jdbc:sqlite:" + workingDir + "\\nerds.db";
@@ -102,4 +107,8 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
         }
     }
 
+    @Override
+    public void stopProgram() {
+        execute = false;
+    }
 }

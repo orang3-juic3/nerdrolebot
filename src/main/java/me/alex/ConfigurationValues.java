@@ -12,6 +12,7 @@ public class ConfigurationValues {
     public int weeksOfData;
     public long roleId;
     public long serverId;
+    public long messageCooldown;
     private ConfigurationValues() {
     }
 
@@ -29,6 +30,7 @@ public class ConfigurationValues {
                 instance.weeksOfData = 2;
                 instance.roleId = 706554375572684860L;
                 instance.serverId = 679434326282207238L;
+                instance.messageCooldown = 6000L;
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 bufferedWriter.write(gson.toJson(instance));
                 bufferedWriter.close();

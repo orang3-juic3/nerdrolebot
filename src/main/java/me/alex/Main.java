@@ -21,6 +21,7 @@ public class Main {
     public static void main(String[] args) {
         try {
             firstTimeDatabaseSetup();
+            ConfigurationValues configurationValues = ConfigurationValues.getInstance();
             JDA jda;
             JDABuilder jdaBuilder = JDABuilder.createDefault("token");
             jda = jdaBuilder.build();

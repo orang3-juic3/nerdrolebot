@@ -27,20 +27,13 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputT
 
     @Override
     public void run() {
-        while (execute) {
-            if (safeToAccess) {
-                inQueue = false;
-                databaseConnectionManager.notifyAccess();
-                setScoreMap();
-                databaseConnectionManager.notifyStopAccess();
-                try {
-                    Thread.sleep(120000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                inQueue = true;
-            }
+        if (safeToAccess) {
+            inQueue = false;
+            databaseConnectionManager.notifyAccess();
+            setScoreMap();
+            databaseConnectionManager.notifyStopAccess();
+        } else {
+            inQueue = true;
         }
     }
 
@@ -50,7 +43,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputT
     }
 
     @Override
-    synchronized public void onDatabaseStopAccessEvent()  {
+    public void onDatabaseStopAccessEvent()  {
         if (inQueue) {
             databaseConnectionManager.notifyAccess();
             setScoreMap();

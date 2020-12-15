@@ -24,30 +24,22 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable, InputTh
 
     @Override
     public void run() {
-        while (execute) {
-            if (safeToAccess) {
-                databaseConnectionManager.notifyAccess();
-                updateMessageTable();
-                databaseConnectionManager.notifyStopAccess();
-                try {
-                    Thread.sleep(115000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else {
-                inQueue = true;
-            }
+        if (safeToAccess) {
+            databaseConnectionManager.notifyAccess();
+            updateMessageTable();
+            databaseConnectionManager.notifyStopAccess();
+        } else {
+            inQueue = true;
         }
-
     }
 
     @Override
-    synchronized public void onDatabaseAccessEvent() {
+    public void onDatabaseAccessEvent() {
         safeToAccess = false;
     }
 
     @Override
-    synchronized public void onDatabaseStopAccessEvent() {
+    public void onDatabaseStopAccessEvent() {
         if (inQueue) {
             databaseConnectionManager.notifyAccess();
             updateMessageTable();

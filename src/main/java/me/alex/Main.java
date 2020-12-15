@@ -31,7 +31,7 @@ public class Main {
             }
             JDA jda;
             EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
-            JDABuilder jdaBuilder = JDABuilder.create("Nzg4MTY0ODU4NzAwMzY1ODY1.X9fhuQ.MPwgSbcCnXwX6Pgn7rRW67sN-Bk", gatewayIntents);
+            JDABuilder jdaBuilder = JDABuilder.create("Nzg4MTY0ODU4NzAwMzY1ODY1.X9fhuQ.MBTIOISNEIMbcX7gNQ4bon9LXv", gatewayIntents);
             jda = jdaBuilder.build();
             jda.awaitReady();
             DatabaseConnectionManager databaseConnectionManager = new DatabaseConnectionManager();
@@ -43,9 +43,11 @@ public class Main {
             InputThread inputThread = new InputThread();
             inputThread.addListener(roleUpdateQuery);
             inputThread.addListener(messageUpdater);
-            roleUpdateQuery.run();
-            messageUpdater.run();
-            inputThread.run();
+            while (true) {
+                messageUpdater.run();
+                roleUpdateQuery.run();
+                Thread.sleep(120000);
+            }
         } catch (LoginException | InterruptedException | IOException e) {
             e.printStackTrace();
         }

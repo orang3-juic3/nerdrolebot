@@ -23,6 +23,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
 
     @Override
     public void onScoreMapReadyEvent(HashMap<Long, Long> scoreMap) {
+        if (scoreMap == null || scoreMap.size() == 0) return;
         this.scoreMap = scoreMap;
         Guild guild = jda.getGuildById(configurationValues.serverId);
         if (guild == null) {

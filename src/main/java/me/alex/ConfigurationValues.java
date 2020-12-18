@@ -13,6 +13,7 @@ public class ConfigurationValues {
     public long roleId;
     public long serverId;
     public long messageCooldown;
+    public String botToken;
     private ConfigurationValues() {
     }
 
@@ -22,7 +23,7 @@ public class ConfigurationValues {
         }
         try {
             String workingDir = Paths.get("").toAbsolutePath().toString();
-            File f = new File(workingDir + "\\conf.json");
+            File f = new File(workingDir + "/conf.json");
             if (f.createNewFile()) {
                 BufferedWriter bufferedWriter = new BufferedWriter(new PrintWriter(f));
                 // bufferedWriter.write("{\"exemptionList\":[479285497487949853, 230336110637744131],\"weeksOfData\":2,\"roleId\":706554375572684860,\"serverId\":679434326282207238}");
@@ -30,6 +31,7 @@ public class ConfigurationValues {
                 instance.weeksOfData = 2;
                 instance.roleId = 706554375572684860L;
                 instance.serverId = 679434326282207238L;
+                instance.botToken = "Nzg4MTY0ODU4NzAwMzY1ODY1.X9fhuQ.MBTIOISNEIMbcX7gNQ4bon9LXvE";
                 instance.messageCooldown = 6000L;
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 bufferedWriter.write(gson.toJson(instance));

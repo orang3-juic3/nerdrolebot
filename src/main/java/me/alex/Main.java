@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.EnumSet;
-
 /**
  * Hello world!
  *
@@ -31,7 +30,7 @@ public class Main {
             }
             JDA jda;
             EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
-            JDABuilder jdaBuilder = JDABuilder.create("Nzg4MTY0ODU4NzAwMzY1ODY1.X9fhuQ.MBTIOISNEIMbcX7gNQ4bon9LXv", gatewayIntents);
+            JDABuilder jdaBuilder = JDABuilder.create(configurationValues.botToken, gatewayIntents);
             jda = jdaBuilder.build();
             jda.awaitReady();
             DatabaseConnectionManager databaseConnectionManager = new DatabaseConnectionManager();
@@ -55,9 +54,9 @@ public class Main {
 
     public static void firstTimeDatabaseSetup() throws IOException {
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        if (new File(workingDir + "\\nerds.db").exists()) return;
+        if (new File(workingDir + "/nerds.db").exists()) return;
         System.err.println("Could not find existing nerds database, creating...");
-        String url = "jdbc:sqlite:" + workingDir + "\\nerds.db";
+        String url = "jdbc:sqlite:" + workingDir + "/nerds.db";
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(url);

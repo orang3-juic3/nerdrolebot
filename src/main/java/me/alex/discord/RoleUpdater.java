@@ -41,29 +41,26 @@ public class RoleUpdater implements ScoreMapReadyListener {
         Guild guild = this.jda.getGuildById(this.configurationValues.serverId);
         if (guild == null) {
             System.err.println(String.format("Unknown server for id \"%s\"!", this.configurationValues.serverId));
+            return;
         }
-        else {
-            Role role = guild.getRoleById(this.configurationValues.roleId);
-            if (role == null) {
-                System.err.println(String.format("Unknown role for id \"%s\"!", this.configurationValues.roleId));
-            }
-            else {
-                members.removeIf((member) -> member.getUser().isBot());
-                members.sort(Comparator.comparingLong((member) -> (Long)this.scoreMap.getOrDefault(member.getIdLong(), 0L)));
-                long messageMembersCount = this.scoreMap.size();
-                Collections.reverse(members);
-                long topMembers = Math.round(messageMembersCount * this.topPercentage);
-                for(int i = 0; i < members.size(); ++i) {
-                    Member member = members.get(i);
-                    if (i < topMembers) {
-                        if (!member.getRoles().contains(role)) {
-                            guild.addRoleToMember(member, role).queue();
-                        }
-                    } else if (member.getRoles().contains(role)) {
-                        guild.removeRoleFromMember(member, role).queue();
-                    }
+        Role role = guild.getRoleById(this.configurationValues.roleId);
+        if (role == null) {
+            System.err.println(String.format("Unknown role for id \"%s\"!", this.configurationValues.roleId));
+            return;
+        }
+        members.removeIf((member) -> member.getUser().isBot());
+        members.sort(Comparator.comparingLong((member) -> scoreMap.getOrDefault(member.getIdLong(), 0L)));
+        long messageMembersCount = scoreMap.size();
+        Collections.reverse(members);
+        long topMembers = Math.round(messageMembersCount * topPercentage);
+        for(int i = 0; i < members.size(); ++i) {
+            Member member = members.get(i);
+            if (i < topMembers) {
+                if (!member.getRoles().contains(role)) {
+                    guild.addRoleToMember(member, role).queue();
                 }
-
+            } else if (member.getRoles().contains(role)) {
+                guild.removeRoleFromMember(member, role).queue();
             }
         }
     }

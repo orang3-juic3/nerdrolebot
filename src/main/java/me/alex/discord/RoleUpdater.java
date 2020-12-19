@@ -3,18 +3,21 @@ package me.alex.discord;
 import me.alex.ConfigurationValues;
 import me.alex.sql.ScoreMapReadyListener;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Role;
 
-import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class RoleUpdater implements ScoreMapReadyListener {
 
     private final JDA jda;
     private final ConfigurationValues configurationValues;
     private HashMap<Long, Long> scoreMap;
+    double topPercentage = 0.5D;
 
     public RoleUpdater(JDA jda, ConfigurationValues configurationValues) {
         this.jda = jda;
@@ -35,32 +38,32 @@ public class RoleUpdater implements ScoreMapReadyListener {
 
 
     public void memberLoadCallback(List<Member> members) {
-        Guild guild = jda.getGuildById(configurationValues.serverId);
+        Guild guild = this.jda.getGuildById(this.configurationValues.serverId);
         if (guild == null) {
-            System.err.println(String.format("Unknown server for id \"%s\"!", configurationValues.serverId));
-            return;
+            System.err.println(String.format("Unknown server for id \"%s\"!", this.configurationValues.serverId));
         }
-        Role role = guild.getRoleById(configurationValues.roleId);
-        if (role == null) {
-            System.err.println(String.format("Unknown role for id \"%s\"!", configurationValues.roleId));
-            return;
-        }
-        long avg = scoreMap.values().stream().mapToLong(Long::longValue).sum() / scoreMap.values().size();
-        List<Long> memberIds = members.stream().map(ISnowflake::getIdLong).collect(Collectors.toCollection(ArrayList::new));
-        for (Long i: scoreMap.keySet()) {
-            Member member = guild.getMember(User.fromId(i));
-            if (member == null) {
-                continue;
+        else {
+            Role role = guild.getRoleById(this.configurationValues.roleId);
+            if (role == null) {
+                System.err.println(String.format("Unknown role for id \"%s\"!", this.configurationValues.roleId));
             }
-            List<Role> roles = member.getRoles();
-            if (roles.contains(role)) {
-                if (scoreMap.get(i) < avg) {
-                    guild.removeRoleFromMember(member, role).queue();
+            else {
+                members.removeIf((member) -> member.getUser().isBot());
+                members.sort(Comparator.comparingLong((member) -> (Long)this.scoreMap.getOrDefault(member.getIdLong(), 0L)));
+                long messageMembersCount = this.scoreMap.size();
+                Collections.reverse(members);
+                long topMembers = Math.round(messageMembersCount * this.topPercentage);
+                for(int i = 0; i < members.size(); ++i) {
+                    Member member = members.get(i);
+                    if (i < topMembers) {
+                        if (!member.getRoles().contains(role)) {
+                            guild.addRoleToMember(member, role).queue();
+                        }
+                    } else if (member.getRoles().contains(role)) {
+                        guild.removeRoleFromMember(member, role).queue();
+                    }
                 }
-            } else {
-                if (scoreMap.get(i) >= avg) {
-                    guild.addRoleToMember(member, role).queue();
-                }
+
             }
         }
     }

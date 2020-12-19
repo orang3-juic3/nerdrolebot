@@ -6,8 +6,10 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class RoleUpdater implements ScoreMapReadyListener {
@@ -33,8 +35,9 @@ public class RoleUpdater implements ScoreMapReadyListener {
         guild.loadMembers().onSuccess(this::memberLoadCallback);
     }
 
-
     public void memberLoadCallback(List<Member> members) {
+        members = members.stream().filter(member -> User.fromId(member.getId()).isBot()).collect(Collectors.toCollection(ArrayList::new));
+        System.out.println("Test");
         Guild guild = jda.getGuildById(configurationValues.serverId);
         if (guild == null) {
             System.err.println(String.format("Unknown server for id \"%s\"!", configurationValues.serverId));
@@ -44,6 +47,9 @@ public class RoleUpdater implements ScoreMapReadyListener {
         if (role == null) {
             System.err.println(String.format("Unknown role for id \"%s\"!", configurationValues.roleId));
             return;
+        }
+        for (Member i : members) {
+            scoreMap.putIfAbsent(i.getIdLong(), 0L);
         }
         long avg = scoreMap.values().stream().mapToLong(Long::longValue).sum() / scoreMap.values().size();
         ArrayList<Long> memberIds = members.stream().map(ISnowflake::getIdLong).collect(Collectors.toCollection(ArrayList::new));
@@ -58,7 +64,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
                     guild.removeRoleFromMember(member, role).queue();
                 }
             } else {
-                if (scoreMap.get(i) >= avg) {
+                if (scoreMap.get(i) > avg) {
                     guild.addRoleToMember(member, role).queue();
                 }
             }

@@ -8,6 +8,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 public class MessageCooldownHandler extends ListenerAdapter {
@@ -27,6 +28,7 @@ public class MessageCooldownHandler extends ListenerAdapter {
             System.out.println("Not the same guild");
             return;
         }
+        if (Arrays.asList(configurationValues.ignoredChannels).contains(e.getChannel().getIdLong())) return;
         long time = System.currentTimeMillis();
 
         if (cooldowns.get(e.getAuthor()) == null || cooldowns.get(e.getAuthor()) <= System.currentTimeMillis()) {

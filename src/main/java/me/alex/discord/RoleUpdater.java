@@ -17,7 +17,6 @@ public class RoleUpdater implements ScoreMapReadyListener {
     private final JDA jda;
     private final ConfigurationValues configurationValues;
     private HashMap<Long, Long> scoreMap;
-    double topPercentage = 0.5D;
 
     public RoleUpdater(JDA jda, ConfigurationValues configurationValues) {
         this.jda = jda;
@@ -50,9 +49,9 @@ public class RoleUpdater implements ScoreMapReadyListener {
         }
         members.removeIf((member) -> member.getUser().isBot());
         members.sort(Comparator.comparingLong((member) -> scoreMap.getOrDefault(member.getIdLong(), 0L)));
-        long messageMembersCount = scoreMap.size();
         Collections.reverse(members);
-        long topMembers = (long) Math.ceil(messageMembersCount * topPercentage);
+        long messageMembersCount = scoreMap.size();
+        long topMembers = (long) Math.ceil(messageMembersCount * (configurationValues.topPercentage /100));
         for(int i = 0; i < members.size(); ++i) {
             Member member = members.get(i);
             if (i < topMembers) {

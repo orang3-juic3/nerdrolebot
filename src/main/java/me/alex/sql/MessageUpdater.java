@@ -1,6 +1,5 @@
 package me.alex.sql;
 
-import me.alex.InputThread;
 import me.alex.discord.MessageCooldownHandler;
 
 import java.io.File;
@@ -11,24 +10,24 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
-public class MessageUpdater implements DatabaseAccessListener, Runnable, InputThread.Close {
-    private final DatabaseConnectionManager databaseConnectionManager;
+public class MessageUpdater implements DatabaseAccessListener, Runnable {
     private final MessageCooldownHandler messageCooldownHandler;
+    private final RoleUpdateQuery roleUpdateQuery;
     private boolean safeToAccess = true;
     private boolean inQueue = false;
-    private boolean execute = true;
 
-    public MessageUpdater(DatabaseConnectionManager databaseConnectionManager, MessageCooldownHandler messageCooldownHandler) {
-        this.databaseConnectionManager = databaseConnectionManager;
+    public MessageUpdater(RoleUpdateQuery roleUpdateQuery, MessageCooldownHandler messageCooldownHandler) {
         this.messageCooldownHandler = messageCooldownHandler;
+        this.roleUpdateQuery = roleUpdateQuery;
     }
 
     @Override
     public void run() {
         if (safeToAccess) {
-            databaseConnectionManager.notifyAccess();
+            roleUpdateQuery.getDatabaseConnectionManager().notifyAccess();
             updateMessageTable();
-            databaseConnectionManager.notifyStopAccess();
+            roleUpdateQuery.getDatabaseConnectionManager().notifyStopAccess();
+            roleUpdateQuery.run();
         } else {
             inQueue = true;
         }
@@ -42,14 +41,10 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable, InputTh
     @Override
     public void onDatabaseStopAccessEvent() {
         if (inQueue) {
-            databaseConnectionManager.notifyAccess();
+            roleUpdateQuery.getDatabaseConnectionManager().notifyAccess();
             updateMessageTable();
-            databaseConnectionManager.notifyStopAccess();
-            try {
-                Thread.sleep(115000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            roleUpdateQuery.getDatabaseConnectionManager().notifyStopAccess();
+            roleUpdateQuery.run();
         }
     }
     private void updateMessageTable() {
@@ -74,10 +69,5 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable, InputTh
                 ex.printStackTrace();
             }
         }
-    }
-
-    @Override
-    public void stopProgram() {
-        execute = false;
     }
 }

@@ -2,7 +2,6 @@ package me.alex.sql;
 
 
 import me.alex.ConfigurationValues;
-import me.alex.InputThread;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -11,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputThread.Close {
+public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     private final ConfigurationValues configurationValues;
     private boolean inQueue = false;
     private boolean safeToAccess = true;
@@ -35,6 +34,11 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputT
             databaseConnectionManager.notifyAccess();
             setScoreMap();
             databaseConnectionManager.notifyStopAccess();
+            try {
+                Thread.sleep(120000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         } else {
             inQueue = true;
         }
@@ -103,8 +107,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputT
         }
     }
 
-    @Override
-    public void stopProgram() {
-        execute = false;
+    public DatabaseConnectionManager getDatabaseConnectionManager() {
+        return databaseConnectionManager;
     }
 }

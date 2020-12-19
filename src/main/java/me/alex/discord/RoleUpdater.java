@@ -52,7 +52,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
         members.sort(Comparator.comparingLong((member) -> scoreMap.getOrDefault(member.getIdLong(), 0L)));
         long messageMembersCount = scoreMap.size();
         Collections.reverse(members);
-        long topMembers = Math.round(messageMembersCount * topPercentage);
+        long topMembers = (long) Math.ceil(messageMembersCount * topPercentage);
         for(int i = 0; i < members.size(); ++i) {
             Member member = members.get(i);
             if (i < topMembers) {

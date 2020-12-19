@@ -3,6 +3,7 @@ package me.alex.sql;
 import me.alex.InputThread;
 import me.alex.discord.MessageCooldownHandler;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -54,7 +55,7 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable, InputTh
     private void updateMessageTable() {
         ArrayList<String> sqlQueries = messageCooldownHandler.generateSqlCalls();
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        String url = "jdbc:sqlite:" + workingDir + "\\nerds.db";
+        String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db";
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(url);

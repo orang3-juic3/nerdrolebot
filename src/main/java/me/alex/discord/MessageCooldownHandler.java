@@ -2,7 +2,6 @@ package me.alex.discord;
 
 import me.alex.ConfigurationValues;
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -21,6 +20,7 @@ public class MessageCooldownHandler extends ListenerAdapter {
     private final HashMap<User,Long> cooldowns = new HashMap<>();
     private final ArrayList<User> users = new ArrayList<>();
     private final ArrayList<Long> timeStamp = new ArrayList<>();
+
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
         if (!e.getGuild().equals(jda.getGuildById(configurationValues.serverId))) return;
@@ -31,6 +31,7 @@ public class MessageCooldownHandler extends ListenerAdapter {
             cooldowns.put(e.getAuthor(), time + configurationValues.messageCooldown);
         }
     }
+
     public ArrayList<String> generateSqlCalls() {
         ArrayList<String> sqlCalls = new ArrayList<>();
         for (int i = 0; i < users.size(); i++) {

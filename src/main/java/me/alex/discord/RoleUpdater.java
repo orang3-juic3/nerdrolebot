@@ -46,7 +46,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
             return;
         }
         long avg = scoreMap.values().stream().mapToLong(Long::longValue).sum() / scoreMap.values().size();
-        ArrayList<Long> memberIds = members.stream().map(ISnowflake::getIdLong).collect(Collectors.toCollection(ArrayList::new));
+        List<Long> memberIds = members.stream().map(ISnowflake::getIdLong).collect(Collectors.toCollection(ArrayList::new));
         for (Long i: scoreMap.keySet()) {
             Member member = guild.getMember(User.fromId(i));
             if (member == null) {

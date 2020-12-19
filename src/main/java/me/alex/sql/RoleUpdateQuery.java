@@ -4,9 +4,12 @@ package me.alex.sql;
 import me.alex.ConfigurationValues;
 import me.alex.InputThread;
 
+import java.io.File;
 import java.nio.file.Paths;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 
 public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputThread.Close {
     private final ConfigurationValues configurationValues;
@@ -60,7 +63,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputT
     private void setScoreMap() {
         HashMap<Long, Long> scoreMap = new HashMap<>();
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        String url = "jdbc:sqlite:" + workingDir + "\\nerds.db";
+        String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db";
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(url);

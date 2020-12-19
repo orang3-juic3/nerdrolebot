@@ -31,7 +31,7 @@ public class ConfigurationValues {
                 instance.weeksOfData = 2;
                 instance.roleId = 706554375572684860L;
                 instance.serverId = 679434326282207238L;
-                instance.botToken = "Nzg4MTY0ODU4NzAwMzY1ODY1.X9fhuQ.MBTIOISNEIMbcX7gNQ4bon9LXvE";
+                instance.botToken = "NzExOTk1MjExMzc0Mzk1NDEy.XsLHNg.IZgzg4W7RwkExCYNXa7vmc_L5us";
                 instance.messageCooldown = 6000L;
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 bufferedWriter.write(gson.toJson(instance));

@@ -30,7 +30,7 @@ public class Main {
             }
             JDA jda;
             EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
-            JDABuilder jdaBuilder = JDABuilder.create(configurationValues.botToken, gatewayIntents);
+            JDABuilder jdaBuilder = JDABuilder.create("NzExOTk1MjExMzc0Mzk1NDEy.XsLHNg.IZgzg4W7RwkExCYNXa7vmc_L5us", gatewayIntents);
             jda = jdaBuilder.build();
             jda.awaitReady();
             DatabaseConnectionManager databaseConnectionManager = new DatabaseConnectionManager();
@@ -47,16 +47,17 @@ public class Main {
                 roleUpdateQuery.run();
                 Thread.sleep(120000);
             }
-        } catch (LoginException | InterruptedException | IOException e) {
+        } catch (LoginException | InterruptedException | IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    public static void firstTimeDatabaseSetup() throws IOException {
+    public static void firstTimeDatabaseSetup() throws IOException, ClassNotFoundException {
+        Class.forName("org.sqlite.JDBC");
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        if (new File(workingDir + "/nerds.db").exists()) return;
+        if (new File(workingDir + File.separator + "nerds.db").exists()) return;
         System.err.println("Could not find existing nerds database, creating...");
-        String url = "jdbc:sqlite:" + workingDir + "/nerds.db";
+        String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db";
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(url);

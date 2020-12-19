@@ -60,7 +60,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener, InputT
     private void setScoreMap() {
         HashMap<Long, Long> scoreMap = new HashMap<>();
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        String url = "jdbc:sqlite:" + workingDir + "\\nerds.db";
+        String url = "jdbc:sqlite:" + workingDir + "/nerds.db";
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(url);

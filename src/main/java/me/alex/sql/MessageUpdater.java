@@ -54,7 +54,7 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable, InputTh
     private void updateMessageTable() {
         ArrayList<String> sqlQueries = messageCooldownHandler.generateSqlCalls();
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        String url = "jdbc:sqlite:" + workingDir + "\\nerds.db";
+        String url = "jdbc:sqlite:" + workingDir + "/nerds.db";
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(url);

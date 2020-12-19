@@ -6,10 +6,9 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 public class RoleUpdater implements ScoreMapReadyListener {
@@ -36,8 +35,18 @@ public class RoleUpdater implements ScoreMapReadyListener {
     }
 
     public void memberLoadCallback(List<Member> members) {
-        members = members.stream().filter(member -> User.fromId(member.getId()).isBot()).collect(Collectors.toCollection(ArrayList::new));
-        System.out.println("Test");
+        members = members.stream().filter(member -> {
+            try {
+                AtomicBoolean isBot = new AtomicBoolean(true);
+                jda.retrieveUserById(member.getId()).queue(i -> {
+                    if (i.isBot()) isBot.set(false);
+                });
+                return isBot.get();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return true;
+        }).collect(Collectors.toCollection(ArrayList::new));
         Guild guild = jda.getGuildById(configurationValues.serverId);
         if (guild == null) {
             System.err.println(String.format("Unknown server for id \"%s\"!", configurationValues.serverId));
@@ -51,9 +60,14 @@ public class RoleUpdater implements ScoreMapReadyListener {
         for (Member i : members) {
             scoreMap.putIfAbsent(i.getIdLong(), 0L);
         }
-        long avg = scoreMap.values().stream().mapToLong(Long::longValue).sum() / scoreMap.values().size();
+        long sum = scoreMap.values().stream().mapToLong(Long::longValue).sum();
+        long size = scoreMap.values().size();
+        if (sum == 0 || size == 1) {
+            return;
+        }
+        double avg = ((double) sum) / size;
         ArrayList<Long> memberIds = members.stream().map(ISnowflake::getIdLong).collect(Collectors.toCollection(ArrayList::new));
-        for (Long i: scoreMap.keySet()) {
+        for (Long i : scoreMap.keySet()) {
             Member member = guild.getMember(User.fromId(i));
             if (member == null) {
                 continue;

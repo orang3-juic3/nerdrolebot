@@ -23,10 +23,14 @@ public class MessageCooldownHandler extends ListenerAdapter {
 
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
-        if (!e.getGuild().equals(jda.getGuildById(configurationValues.serverId))) return;
+        if (!e.getGuild().equals(jda.getGuildById(configurationValues.serverId))) {
+            System.out.println("Not the same guild");
+            return;
+        }
+        long time = System.currentTimeMillis();
+
         if (cooldowns.get(e.getAuthor()) == null || cooldowns.get(e.getAuthor()) <= System.currentTimeMillis()) {
             users.add(e.getAuthor());
-            long time = System.currentTimeMillis();
             timeStamp.add(time);
             cooldowns.put(e.getAuthor(), time + configurationValues.messageCooldown);
         }

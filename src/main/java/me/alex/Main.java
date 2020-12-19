@@ -30,7 +30,7 @@ public class Main {
             }
             JDA jda;
             EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
-            JDABuilder jdaBuilder = JDABuilder.create("NzExOTk1MjExMzc0Mzk1NDEy.XsLHNg.IZgzg4W7RwkExCYNXa7vmc_L5us", gatewayIntents);
+            JDABuilder jdaBuilder = JDABuilder.create(ConfigurationValues.getInstance().botToken, gatewayIntents);
             jda = jdaBuilder.build();
             jda.awaitReady();
             DatabaseConnectionManager databaseConnectionManager = new DatabaseConnectionManager();
@@ -45,7 +45,7 @@ public class Main {
             while (true) {
                 messageUpdater.run();
                 roleUpdateQuery.run();
-                Thread.sleep(120000);
+                Thread.sleep(30000);
             }
         } catch (LoginException | InterruptedException | IOException | ClassNotFoundException e) {
             e.printStackTrace();

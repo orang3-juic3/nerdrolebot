@@ -10,17 +10,30 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 
+/**
+ * This class deals with logging messages sent by users.
+ */
 public class MessageUpdater implements DatabaseAccessListener, Runnable {
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdateQuery roleUpdateQuery;
     private boolean safeToAccess = true;
     private boolean inQueue = false;
 
+    /**
+     * @param roleUpdateQuery An instance of RoleUpdateQuery to run after updating messages.
+     * @param messageCooldownHandler An instance of MessageCooldownHandler to get the users to update.
+     */
     public MessageUpdater(RoleUpdateQuery roleUpdateQuery, MessageCooldownHandler messageCooldownHandler) {
         this.messageCooldownHandler = messageCooldownHandler;
         this.roleUpdateQuery = roleUpdateQuery;
     }
 
+    /**
+     * The main method this thread runs. If it is safe to access the database, it will update the database, then start a thread of a RoleUpdateQuery instance.
+     * @see DatabaseAccessListener
+     * @see DatabaseConnectionManager
+     * @see RoleUpdateQuery
+     */
     @Override
     public void run() {
         if (safeToAccess) {
@@ -33,11 +46,20 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
         }
     }
 
+    /**
+     * When the database is accessed, this makes sure that the thread will not attempt to access the database.
+     * @see DatabaseConnectionManager
+     * @see DatabaseAccessListener
+     */
     @Override
     public void onDatabaseAccessEvent() {
         safeToAccess = false;
     }
-
+    /**
+     * When the database has stopped being accessed, the process gets executed if it is in a queue.
+     * @see DatabaseConnectionManager
+     * @see DatabaseAccessListener
+     */
     @Override
     public void onDatabaseStopAccessEvent() {
         if (inQueue) {
@@ -47,6 +69,11 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
             roleUpdateQuery.run();
         }
     }
+
+    /**
+     * This will update the database with logged messages by a MessageCooldownHandler instance
+     * @see MessageCooldownHandler
+     */
     private void updateMessageTable() {
         ArrayList<String> sqlQueries = messageCooldownHandler.generateSqlCalls();
         String workingDir = Paths.get("").toAbsolutePath().toString();
@@ -70,4 +97,5 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
             }
         }
     }
+
 }

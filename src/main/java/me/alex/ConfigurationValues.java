@@ -6,6 +6,10 @@ import com.google.gson.GsonBuilder;
 import java.io.*;
 import java.nio.file.Paths;
 
+/**
+ * This class is a thread-safe singleton class that reads the configuration JSON file or creates one if one does not exist.
+ * Since only one instance can be created, it will appear often in many classes.
+ */
 public class ConfigurationValues {
     private static ConfigurationValues instance;
     public Long[] exemptionList;
@@ -20,6 +24,11 @@ public class ConfigurationValues {
     private ConfigurationValues() {
     }
 
+    /**
+     * This method reads the configuration and assigns values accordingly. In the case of a configuration not existing, it uses default values and creates a configuration.
+     * @return Returns <b>the instance</b> of ConfigurationValues.
+     * @see Gson
+     */
     public static synchronized ConfigurationValues getInstance() {
         if(instance == null){
             instance = new ConfigurationValues();

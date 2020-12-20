@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+/**
+ * This class deals with querying the SQL database for messages sent.
+ */
 public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     private final ConfigurationValues configurationValues;
     private boolean inQueue = false;
@@ -18,15 +21,36 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     private final ArrayList<ScoreMapReadyListener> scoreMapReadyListeners = new ArrayList<>();
     private final DatabaseConnectionManager databaseConnectionManager;
 
+    /**
+     * @param scoreMapReadyListener Adds a ScoreMapReadyListener instance to the listener ArrayList.
+     * @see me.alex.discord.RoleUpdater
+     * @see ScoreMapReadyListener
+     */
     public void addListener(ScoreMapReadyListener scoreMapReadyListener) {
         scoreMapReadyListeners.add(scoreMapReadyListener);
     }
+
+    /**
+     * The constructor for this class
+     * @param configurationValues The instance of the ConfigurationValues, needed to set various things across the code.
+     * @param databaseConnectionManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
+     * @see ConfigurationValues
+     * @see DatabaseConnectionManager
+     * @see DatabaseAccessListener
+     */
     public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseConnectionManager databaseConnectionManager) {
         this.configurationValues = configurationValues;
         databaseConnectionManager.addListener(this);
         this.databaseConnectionManager = databaseConnectionManager;
     }
 
+    /**
+     * The run method for the thread that is created by MessageUpdater for this class. It checks whether it is safe to access the database, then queries it.
+     * If it isn't safe to access the database, the process is put in a queue, and gets executed when it is safe to access the database again.
+     * @see MessageUpdater
+     * @see DatabaseConnectionManager
+     * @see DatabaseAccessListener
+     */
     @Override
     public void run() {
         if (safeToAccess) {
@@ -44,11 +68,21 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
         }
     }
 
+    /**
+     * When the database is accessed, this makes sure that the thread will not attempt to access the database.
+     * @see DatabaseConnectionManager
+     * @see DatabaseAccessListener
+     */
     @Override
     synchronized public void onDatabaseAccessEvent() {
         safeToAccess = false;
     }
 
+    /**
+     * When the database has stopped being accessed, the process gets executed if it is in a queue.
+     * @see DatabaseConnectionManager
+     * @see DatabaseAccessListener
+     */
     @Override
     public void onDatabaseStopAccessEvent()  {
         if (inQueue) {
@@ -64,6 +98,15 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
         safeToAccess = true;
 
     }
+
+    /**
+     * This method makes a HashMap of User IDs and how many messages they've sent in the configured time.
+     * Then it notifies listeners that a score map is ready.
+     * @see ConfigurationValues
+     * @see ScoreMapReadyListener
+     * @see me.alex.discord.RoleUpdater
+     * @see net.dv8tion.jda.api.entities.User
+     */
     private void setScoreMap() {
         HashMap<Long, Long> scoreMap = new HashMap<>();
         String workingDir = Paths.get("").toAbsolutePath().toString();
@@ -107,6 +150,10 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
         }
     }
 
+    /**
+     * @return Returns the instance of DatabaseConnectionManager associated with this class.
+     * @see DatabaseConnectionManager
+     */
     public DatabaseConnectionManager getDatabaseConnectionManager() {
         return databaseConnectionManager;
     }

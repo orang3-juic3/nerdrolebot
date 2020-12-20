@@ -6,12 +6,17 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.sql.*;
+
 /**
- * Hello world!
- *
+ * The main class of the project.
  */
+// TODO: 20/12/2020 make all the listeners more generalised
 public class Main {
 
+    /**
+     * The main method of the program.
+     * @param args Takes in launch arguments.
+     */
     public static void main(String[] args) {
         try {
             firstTimeDatabaseSetup();
@@ -26,6 +31,11 @@ public class Main {
         }
     }
 
+    /**
+     * This method is called every time the program starts. It ensures the database exists and if not, makes a new one.
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     public static void firstTimeDatabaseSetup() throws IOException, ClassNotFoundException {
         Class.forName("org.sqlite.JDBC");
         String workingDir = Paths.get("").toAbsolutePath().toString();
@@ -48,6 +58,7 @@ public class Main {
                 statement.execute(sql);
                 System.out.println("Created table levels!");
             }
+            // TODO: 19/12/2020 Make it so it pulls 2 weeks of data 
         } catch (SQLException e) {
             throw new IOException("Couldn't create new database with tables!", e);
         } finally {

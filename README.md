@@ -6,5 +6,5 @@ of those who have sent at least one message and gives these people Nerd role. If
 the threshold, it is removed.
 
 Feel free to PR if you have something to commit.
-Javadoc available here: https://drive.google.com/file/d/1kcNNeCHLhNZMqZ8qj0Pgn3oPCM-A4Ux9/view?usp=sharing
+Javadoc available here: https://drive.google.com/file/d/1kcNNeCHLhNZMqZ8qj0Pgn3oPCM-A4Ux9/view?usp=sharing  
 You need only download and extract the zip file, and open index.html.

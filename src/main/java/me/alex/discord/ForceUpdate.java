@@ -6,6 +6,7 @@ import me.alex.sql.DatabaseConnectionManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -26,6 +27,8 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdater roleUpdater;
     private MessageReceivedEvent messageReceivedEvent;
+    private MessageEmbed response = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
+    private MessageEmbed detailedResponse = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
 
     /**
      * @param sequenceBuilder SequenceBuilder provides instances of the required classes to build the threads that can be used to create more instances
@@ -53,6 +56,10 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         if (!e.getMessage().getContentRaw().equalsIgnoreCase("!update")) return;
         if (e.getAuthor().isBot()) return;
         if (e.getMember() == null) return;
+        if (e.getChannel().getType() == ChannelType.PRIVATE) {
+            dmOutput(e);
+            return;
+        }
         List<Role> roles = e.getMember().getRoles();
         if (!(roles.stream().filter(i -> Arrays.asList(configurationValues.rolesAllowedToUpdate).contains(i.getIdLong())).count() < configurationValues.rolesAllowedToUpdate.length)) return;
         RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseConnectionManager);
@@ -63,10 +70,25 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     }
 
     /**
-     * @param messageEmbed When there is output available it will send it. WIP.
+     * @param messageEmbed When there is output available it will send it.
      */
     @Override
     public void onEmbedOutputReady(MessageEmbed messageEmbed) {
-        messageReceivedEvent.getChannel().sendMessage(messageEmbed).queue();
+        response = messageEmbed;
+        if (messageReceivedEvent != null) {
+            messageReceivedEvent.getChannel().sendMessage(response).queue();
+        }
+        messageReceivedEvent = null;
+    }
+    public void dmOutput(MessageReceivedEvent e) {
+        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!advinfo")){
+            return;
+        }
+        e.getChannel().sendMessage(detailedResponse).queue();
+    }
+
+    @Override
+    public void onAdvancedEmbedOutputReady(MessageEmbed messageEmbed) {
+        detailedResponse = messageEmbed;
     }
 }

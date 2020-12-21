@@ -109,6 +109,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
         RolesChanged rolesChanged = new RolesChanged(rolesAdded, rolesRemoved);
         for (Output i : listeners) {
             i.onEmbedOutputReady(rolesChanged.getOutput());
+            i.onAdvancedEmbedOutputReady(rolesChanged.getOutputDetailed());
         }
     }
 
@@ -148,7 +149,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
                 return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true).build();
             }
             embedBuilder.addField("Changes:", "Users given role " + role.getName() + ": " + rolesAdded.size() +
-                                 "\nUsers that had role " + role.getName() + ": " + rolesRemoved.size(), true);
+                                 "\nUsers that had role " + role.getName() + "removed: " + rolesRemoved.size(), true);
             return embedBuilder.build();
         }
 
@@ -156,10 +157,10 @@ public class RoleUpdater implements ScoreMapReadyListener {
          * @return Gets the more detailed output, ie the basic output but with lists of the people who have had their roles changed, how long ago the operation was executed, and the source of the operation
          * @see RolesChanged#getOutput()
          */
-        public EmbedBuilder getOutputDetailed() {
+        public MessageEmbed getOutputDetailed() {
             Role role = jda.getRoleById(configurationValues.roleId);
             if (role == null) {
-                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true);
+                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true).build();
             }
             long millis = System.currentTimeMillis() - time;
             String timeDiff = String.format("This operation finished %02d:%02d:%02d ago",
@@ -182,8 +183,8 @@ public class RoleUpdater implements ScoreMapReadyListener {
             embedBuilder.addField("List of users given the role:", listGiven, true);
             String listRemoved = rolesRemoved.stream().map(Member::getEffectiveName).map(Objects::toString).collect(Collectors.joining(","));
             embedBuilder.addField("List of users where the role was removed:", listRemoved, true);
-            return embedBuilder;
-
+            embedBuilder.setFooter(timeDiff);
+            return embedBuilder.build();
         }
     }
 
@@ -193,7 +194,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
      * @see RoleUpdater
      */
     public interface Output {
-        default void onOutputReady(String output) {
+        default void onAdvancedEmbedOutputReady(MessageEmbed messageEmbed) {
 
         }
         default void onEmbedOutputReady(MessageEmbed messageEmbed) {

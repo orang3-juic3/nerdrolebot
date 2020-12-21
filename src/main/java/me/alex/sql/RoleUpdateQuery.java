@@ -16,8 +16,8 @@ import java.util.HashMap;
 public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     private final ConfigurationValues configurationValues;
     private boolean inQueue = false;
+    private final long sleepTime;
     private boolean safeToAccess = true;
-    private boolean execute = true;
     private final ArrayList<ScoreMapReadyListener> scoreMapReadyListeners = new ArrayList<>();
     private final DatabaseConnectionManager databaseConnectionManager;
 
@@ -31,7 +31,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     }
 
     /**
-     * The constructor for this class
+     * The preferred constructor for this class, where the delay is the one defined in ConfigurationValues
      * @param configurationValues The instance of the ConfigurationValues, needed to set various things across the code.
      * @param databaseConnectionManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
      * @see ConfigurationValues
@@ -42,6 +42,20 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
         this.configurationValues = configurationValues;
         databaseConnectionManager.addListener(this);
         this.databaseConnectionManager = databaseConnectionManager;
+        sleepTime = configurationValues.delay;
+    }
+
+    /**
+     * An alternative constructor where the delay is defined by the caller. It is better to use the predefined delay.
+     * @param configurationValues The instance of the ConfigurationValues, needed to set various things across the code.
+     * @param databaseConnectionManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
+     * @param sleepTime The amount of time before the thread finishes executing.
+     */
+    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseConnectionManager databaseConnectionManager, long sleepTime) {
+        this.configurationValues = configurationValues;
+        databaseConnectionManager.addListener(this);
+        this.databaseConnectionManager = databaseConnectionManager;
+        this.sleepTime = sleepTime;
     }
 
     /**
@@ -59,7 +73,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
             setScoreMap();
             databaseConnectionManager.notifyStopAccess();
             try {
-                Thread.sleep(120000);
+                Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

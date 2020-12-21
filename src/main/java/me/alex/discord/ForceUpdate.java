@@ -6,6 +6,7 @@ import me.alex.sql.DatabaseConnectionManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
@@ -15,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A command that can be executed by a user that has a certain role defined in conf.json that force updates the nerd role list
@@ -26,9 +28,8 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     private final DatabaseConnectionManager databaseConnectionManager;
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdater roleUpdater;
-    private MessageReceivedEvent messageReceivedEvent;
     private MessageEmbed response = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
-    private MessageEmbed detailedResponse = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
+    private MessageEmbed detailedResponse = new EmbedBuilder(response).build();
 
     /**
      * @param sequenceBuilder SequenceBuilder provides instances of the required classes to build the threads that can be used to create more instances
@@ -41,7 +42,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         configurationValues = sequenceBuilder.getConfigurationValues();
         databaseConnectionManager = sequenceBuilder.getDatabaseConnectionManager();
         messageCooldownHandler = sequenceBuilder.getMessageCooldownHandler();
-        roleUpdater = sequenceBuilder.getRoleUpdater();
+        roleUpdater = new RoleUpdater(sequenceBuilder.getJda(), configurationValues, true);
     }
 
     /**
@@ -52,43 +53,59 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
-        messageReceivedEvent = e;
-        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!update")) return;
+        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!update") && !e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")) return;
         if (e.getAuthor().isBot()) return;
-        if (e.getMember() == null) return;
         if (e.getChannel().getType() == ChannelType.PRIVATE) {
+            if (e.getMessage().getContentRaw().equalsIgnoreCase("!update")) {
+                return;
+            }
             dmOutput(e);
             return;
         }
+        if (e.getMember() == null) return; // should be after the above if because it will always be null if its a private channel..
         List<Role> roles = e.getMember().getRoles();
-        if (!(roles.stream().filter(i -> Arrays.asList(configurationValues.rolesAllowedToUpdate).contains(i.getIdLong())).count() < configurationValues.rolesAllowedToUpdate.length)) return;
-        RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseConnectionManager);
+        boolean carryOn = false;
+        for (Role role : roles) { // cleaned up this 'satanic' code at the request of Xemor. That 'satanic' code didn't actually work as well, thank you Xemor.
+            if (Arrays.asList(configurationValues.rolesAllowedToUpdate).contains(role.getIdLong())) {
+                carryOn = true;
+                break;
+            }
+        }
+        if(!carryOn) {
+            return;
+        }
+        RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseConnectionManager,0);
         roleUpdater.addListener(this);
         roleUpdateQuery.addListener(roleUpdater);
         MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
         messageUpdater.run();
+        e.getChannel().sendMessage(response).queue();
     }
 
     /**
-     * @param messageEmbed When there is output available it will send it.
+     * @param messageEmbed When there is output it will set the instance's embed to it.
      */
     @Override
     public void onEmbedOutputReady(MessageEmbed messageEmbed) {
         response = messageEmbed;
-        if (messageReceivedEvent != null) {
-            messageReceivedEvent.getChannel().sendMessage(response).queue();
-        }
-        messageReceivedEvent = null;
     }
     public void dmOutput(MessageReceivedEvent e) {
-        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!advinfo")){
+        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")){
             return;
         }
         e.getChannel().sendMessage(detailedResponse).queue();
     }
 
     @Override
-    public void onAdvancedEmbedOutputReady(MessageEmbed messageEmbed) {
-        detailedResponse = messageEmbed;
+    public void onAdvancedEmbedOutputReady(EmbedBuilder embedBuilder, long time, boolean command) {
+        long millis = System.currentTimeMillis() - time;
+        String timeDiff = RoleUpdater.getTimeFormatted(millis);
+        if (command) {
+            timeDiff += " | The source was a command executed by the user.";
+        } else {
+            timeDiff += " | The source was the bot updating the nerd list.";
+        }
+        embedBuilder.setFooter(timeDiff);
+        detailedResponse = embedBuilder.build();
     }
 }

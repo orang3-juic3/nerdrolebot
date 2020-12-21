@@ -2,6 +2,7 @@ package me.alex.discord;
 
 import me.alex.ConfigurationValues;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -40,11 +41,15 @@ public class MessageCooldownHandler extends ListenerAdapter {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
+        if (e.getChannelType() == ChannelType.PRIVATE) {
+            return;
+        }
         if (!e.getGuild().equals(jda.getGuildById(configurationValues.serverId))) {
             return;
         }
         if (Arrays.asList(configurationValues.ignoredChannels).contains(e.getChannel().getIdLong())) return;
         long time = System.currentTimeMillis();
+
 
         if (cooldowns.get(e.getAuthor()) == null || cooldowns.get(e.getAuthor()) <= System.currentTimeMillis()) {
             users.add(e.getAuthor());

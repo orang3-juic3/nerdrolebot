@@ -29,7 +29,10 @@ public class Main {
         try {
             SequenceBuilder sequenceBuilder = new SequenceBuilder();
             sequenceBuilder.build();
-            sequenceBuilder.getJda().addEventListener(new ForceUpdate(sequenceBuilder));
+            sequenceBuilder.getJda().addEventListener(new ModPX());
+            ForceUpdate forceUpdate = new ForceUpdate(sequenceBuilder);
+            sequenceBuilder.getJda().addEventListener(forceUpdate);
+            sequenceBuilder.getRoleUpdater().addListener(forceUpdate);
             firstTimeDatabaseSetup(sequenceBuilder);
         } catch (Exception e) {
             e.printStackTrace();
@@ -43,12 +46,15 @@ public class Main {
      * @param sequenceBuilder the sequence builder.
      * @see ConfigurationValues
      */
-    public static void firstTimeDatabaseSetup(SequenceBuilder sequenceBuilder) throws IOException, ClassNotFoundException {
+    synchronized public static void firstTimeDatabaseSetup(SequenceBuilder sequenceBuilder) throws IOException, ClassNotFoundException {
         JDA jda = sequenceBuilder.getJda();
         ConfigurationValues configurationValues = sequenceBuilder.getConfigurationValues();
         Class.forName("org.sqlite.JDBC");
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        if (new File(workingDir + File.separator + "nerds.db").exists()) return;
+        if (new File(workingDir + File.separator + "nerds.db").exists()){
+            startRunning(sequenceBuilder);
+            return;
+        }
         System.err.println("Could not find existing nerds database, creating...");
         String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db";
         Connection conn = null;
@@ -84,7 +90,6 @@ public class Main {
             throw new InvalidConfigurationException("Invalid server id for id " + configurationValues.serverId + "!");
         }
         List<TextChannel> channels = guild.getTextChannels();
-        List<String> sqlCalls = new ArrayList<>();
         long time = System.currentTimeMillis();
         User botId = jda.getSelfUser();
         final Member botMember = Objects.requireNonNull(jda.getGuildById(configurationValues.serverId)).getMember(botId);
@@ -99,6 +104,7 @@ public class Main {
                 continue;
             }
             MessageHistory.getHistoryBefore(i, i.getLatestMessageId()).queue(j -> {
+                List<String> sqlCalls = new ArrayList<>();
                 if (j.isEmpty()) return;
                 List<Message> messages = j.getRetrievedHistory();
                 long weekInMillis = (long) 6.048e+8;
@@ -121,6 +127,27 @@ public class Main {
                 for (Message m: messages) {
                     sqlCalls.add(String.format("INSERT INTO messages VALUES (%s, %s)", m.getAuthor().getIdLong(), m.getTimeCreated().toEpochSecond() * 1000));
                 }
+                Connection connection = null; // we need to make it null because DriverManager#getConnection() doesn't throw a hissy fit if something is wrong.
+                try {
+                    connection = DriverManager.getConnection(url);
+                    if (connection != null) {
+                        for (String s : sqlCalls) {
+                            Statement statement = connection.createStatement();
+                            statement.executeUpdate(s);
+                        }
+                    }
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                } finally {
+                    try {
+                        if (connection != null) {
+                            connection.close();
+                        }
+                    }catch (SQLException ex) {
+                        ex.printStackTrace();
+                        System.exit(1);
+                    }
+                }
                 masterCounter.getAndIncrement();
                 if (masterCounter.get() == channels.size() - 1) {
                     executeUpdates.set(true);
@@ -129,27 +156,6 @@ public class Main {
         }
         while (!executeUpdates.get()) {
             //wait because i dont know how to fucking do it better
-        }
-        Connection connection = null; // we need to make it null because DriverManager#getConnection() doesn't throw a hissy fit if something is wrong.
-        try {
-            connection = DriverManager.getConnection(url);
-            if (connection != null) {
-                for (String s : sqlCalls) {
-                    Statement statement = connection.createStatement();
-                    statement.executeUpdate(s);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                if (connection != null) {
-                    connection.close();
-                }
-            }catch (SQLException ex) {
-                ex.printStackTrace();
-                System.exit(1);
-            }
         }
         startRunning(sequenceBuilder);
 

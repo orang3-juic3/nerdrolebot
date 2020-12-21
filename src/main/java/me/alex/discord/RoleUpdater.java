@@ -4,6 +4,7 @@ import me.alex.ConfigurationValues;
 import me.alex.sql.ScoreMapReadyListener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
@@ -23,8 +24,8 @@ public class RoleUpdater implements ScoreMapReadyListener {
     private final JDA jda;
     private final ConfigurationValues configurationValues;
     private HashMap<Long, Long> scoreMap;
-    private ArrayList<RoleUpdater.Output> listeners = new ArrayList<>();
-    private boolean command;
+    private final ArrayList<RoleUpdater.Output> listeners = new ArrayList<>();
+    private final boolean command;
 
     /**
      * @param jda The JDA instance being used for this bot.
@@ -92,6 +93,13 @@ public class RoleUpdater implements ScoreMapReadyListener {
         Collections.reverse(members);
         long messageMembersCount = scoreMap.size();
         long topMembers = (long) Math.ceil(messageMembersCount * (configurationValues.topPercentage /100));
+        for (int i = (int) topMembers; i < members.size() - 1; i++) { // so that values that are the same get included.
+            if (members.get(i + 1) == members.get(i)) {
+                topMembers++;
+            } else {
+                break;
+            }
+        }
         List<Member> rolesAdded = new ArrayList<>();
         List<Member> rolesRemoved = new ArrayList<>();
         for(int i = 0; i < members.size(); ++i) {
@@ -109,8 +117,14 @@ public class RoleUpdater implements ScoreMapReadyListener {
         RolesChanged rolesChanged = new RolesChanged(rolesAdded, rolesRemoved);
         for (Output i : listeners) {
             i.onEmbedOutputReady(rolesChanged.getOutput());
-            i.onAdvancedEmbedOutputReady(rolesChanged.getOutputDetailed());
+            i.onAdvancedEmbedOutputReady(rolesChanged.getOutputDetailed(), rolesChanged.time, command);
         }
+    }
+    public static String getTimeFormatted(long millis) {
+        return String.format("This operation finished %02d:%02d:%02ds ago",
+                TimeUnit.MILLISECONDS.toHours(millis),
+                TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
+                TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
     }
 
     /**
@@ -140,7 +154,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
          */
         public MessageEmbed getOutput() {
             EmbedBuilder embedBuilder = new EmbedBuilder();
-            embedBuilder.setAuthor("Nerd Bot", "https://discord.com/channels/787351993285869589/787351993735708758/790033548732006410");
+            embedBuilder.setAuthor("Nerd Bot", "https://media.discordapp.net/attachments/787351993735708758/790033548525830144/nerdbot2.png?width=586&height=586");
             embedBuilder.setThumbnail("https://media.discordapp.net/attachments/772164567425220640/789866299618099230/NerdBot.png?width=669&height=669");
             embedBuilder.setColor(new Color(52, 153, 49));
             embedBuilder.setTitle("Update Output:");
@@ -149,7 +163,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
                 return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true).build();
             }
             embedBuilder.addField("Changes:", "Users given role " + role.getName() + ": " + rolesAdded.size() +
-                                 "\nUsers that had role " + role.getName() + "removed: " + rolesRemoved.size(), true);
+                                 "\nUsers that had role " + role.getName() + " removed: " + rolesRemoved.size(), true);
             return embedBuilder.build();
         }
 
@@ -157,21 +171,12 @@ public class RoleUpdater implements ScoreMapReadyListener {
          * @return Gets the more detailed output, ie the basic output but with lists of the people who have had their roles changed, how long ago the operation was executed, and the source of the operation
          * @see RolesChanged#getOutput()
          */
-        public MessageEmbed getOutputDetailed() {
+        public EmbedBuilder getOutputDetailed() {
             Role role = jda.getRoleById(configurationValues.roleId);
             if (role == null) {
-                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true).build();
+                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true);
             }
-            long millis = System.currentTimeMillis() - time;
-            String timeDiff = String.format("This operation finished %02d:%02d:%02d ago",
-                    TimeUnit.MILLISECONDS.toHours(millis),
-                    TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
-                    TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
-            if (command) {
-                timeDiff += " | The source was a command executed by the user.";
-            } else {
-                timeDiff += " | The source was the bot updating the nerd list.";
-            }
+
             EmbedBuilder embedBuilder = new EmbedBuilder();
             embedBuilder.setAuthor("Nerd Bot", "https://discord.com/channels/787351993285869589/787351993735708758/790033548732006410");
             embedBuilder.setThumbnail("https://media.discordapp.net/attachments/772164567425220640/789866299618099230/NerdBot.png?width=669&height=669");
@@ -183,8 +188,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
             embedBuilder.addField("List of users given the role:", listGiven, true);
             String listRemoved = rolesRemoved.stream().map(Member::getEffectiveName).map(Objects::toString).collect(Collectors.joining(","));
             embedBuilder.addField("List of users where the role was removed:", listRemoved, true);
-            embedBuilder.setFooter(timeDiff);
-            return embedBuilder.build();
+            return embedBuilder;
         }
     }
 
@@ -194,7 +198,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
      * @see RoleUpdater
      */
     public interface Output {
-        default void onAdvancedEmbedOutputReady(MessageEmbed messageEmbed) {
+        default void onAdvancedEmbedOutputReady(EmbedBuilder embedBuilder, long time, boolean command) {
 
         }
         default void onEmbedOutputReady(MessageEmbed messageEmbed) {

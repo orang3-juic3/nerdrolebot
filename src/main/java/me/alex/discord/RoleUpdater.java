@@ -183,10 +183,10 @@ public class RoleUpdater implements ScoreMapReadyListener {
             embedBuilder.setColor(new Color(52, 153, 49));
             embedBuilder.setTitle("Update Output Detailed:");
             embedBuilder.addField("Changes:", "Users given role " + role.getName() + ": " + rolesAdded.size() +
-                    "\nUsers that had role " + role.getName() + ": " + rolesRemoved.size(), true);
-            String listGiven = rolesAdded.stream().map(Member::getEffectiveName).map(Objects::toString).collect(Collectors.joining(",")); // concatenate all members to single string
+                    "\nUsers that had role " + role.getName() + " removed: " + rolesRemoved.size(), true);
+            String listGiven = rolesAdded.stream().map(Member::getEffectiveName).map(Objects::toString).collect(Collectors.joining(", ")); // concatenate all members to single string
             embedBuilder.addField("List of users given the role:", listGiven, true);
-            String listRemoved = rolesRemoved.stream().map(Member::getEffectiveName).map(Objects::toString).collect(Collectors.joining(","));
+            String listRemoved = rolesRemoved.stream().map(Member::getEffectiveName).map(Objects::toString).collect(Collectors.joining(", "));
             embedBuilder.addField("List of users where the role was removed:", listRemoved, true);
             return embedBuilder;
         }

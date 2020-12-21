@@ -6,7 +6,6 @@ import me.alex.sql.DatabaseConnectionManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.MessageBuilder;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
@@ -16,7 +15,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * A command that can be executed by a user that has a certain role defined in conf.json that force updates the nerd role list
@@ -29,7 +27,9 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdater roleUpdater;
     private MessageEmbed response = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
-    private MessageEmbed detailedResponse = new EmbedBuilder(response).build();
+    private EmbedBuilder detailedResponse = new EmbedBuilder(response);
+    private long timeOfUpdate;
+    private boolean command;
 
     /**
      * @param sequenceBuilder SequenceBuilder provides instances of the required classes to build the threads that can be used to create more instances
@@ -62,6 +62,10 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
             dmOutput(e);
             return;
         }
+        if (e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")) {
+            e.getChannel().sendMessage("Please dm me this command!").queue();
+            return;
+        }
         if (e.getMember() == null) return; // should be after the above if because it will always be null if its a private channel..
         List<Role> roles = e.getMember().getRoles();
         boolean carryOn = false;
@@ -90,22 +94,24 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         response = messageEmbed;
     }
     public void dmOutput(MessageReceivedEvent e) {
-        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")){
-            return;
-        }
-        e.getChannel().sendMessage(detailedResponse).queue();
-    }
-
-    @Override
-    public void onAdvancedEmbedOutputReady(EmbedBuilder embedBuilder, long time, boolean command) {
-        long millis = System.currentTimeMillis() - time;
+        long millis = System.currentTimeMillis() - timeOfUpdate;
         String timeDiff = RoleUpdater.getTimeFormatted(millis);
         if (command) {
             timeDiff += " | The source was a command executed by the user.";
         } else {
             timeDiff += " | The source was the bot updating the nerd list.";
         }
-        embedBuilder.setFooter(timeDiff);
-        detailedResponse = embedBuilder.build();
+        detailedResponse.setFooter(timeDiff);
+        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")){
+            return;
+        }
+        e.getChannel().sendMessage(detailedResponse.build()).queue();
+    }
+
+    @Override
+    public void onAdvancedEmbedOutputReady(EmbedBuilder embedBuilder, long time, boolean command) {
+        this.timeOfUpdate = time;
+        this.command = command;
+        detailedResponse = embedBuilder;
     }
 }

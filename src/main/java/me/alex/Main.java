@@ -6,9 +6,11 @@ import net.dv8tion.jda.api.entities.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -98,13 +100,13 @@ public class Main {
         }
         AtomicInteger masterCounter = new AtomicInteger();
         AtomicBoolean executeUpdates = new AtomicBoolean(false);
+        List<String> sqlCalls = new CopyOnWriteArrayList<>();
         for (TextChannel i: channels) {
             if (Arrays.asList(configurationValues.ignoredChannels).contains(i.getIdLong()) || !i.canTalk(botMember)) {
                 masterCounter.getAndIncrement();
                 continue;
             }
             MessageHistory.getHistoryBefore(i, i.getLatestMessageId()).queue(j -> {
-                List<String> sqlCalls = new ArrayList<>();
                 if (j.isEmpty()) return;
                 List<Message> messages = j.getRetrievedHistory();
                 long weekInMillis = (long) 6.048e+8;
@@ -127,27 +129,6 @@ public class Main {
                 for (Message m: messages) {
                     sqlCalls.add(String.format("INSERT INTO messages VALUES (%s, %s)", m.getAuthor().getIdLong(), m.getTimeCreated().toEpochSecond() * 1000));
                 }
-                Connection connection = null; // we need to make it null because DriverManager#getConnection() doesn't throw a hissy fit if something is wrong.
-                try {
-                    connection = DriverManager.getConnection(url);
-                    if (connection != null) {
-                        for (String s : sqlCalls) {
-                            Statement statement = connection.createStatement();
-                            statement.executeUpdate(s);
-                        }
-                    }
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                } finally {
-                    try {
-                        if (connection != null) {
-                            connection.close();
-                        }
-                    }catch (SQLException ex) {
-                        ex.printStackTrace();
-                        System.exit(1);
-                    }
-                }
                 masterCounter.getAndIncrement();
                 if (masterCounter.get() == channels.size() - 1) {
                     executeUpdates.set(true);
@@ -157,6 +138,7 @@ public class Main {
         while (!executeUpdates.get()) {
             //wait because i dont know how to fucking do it better
         }
+        executeInitialUpdates(sqlCalls);
         startRunning(sequenceBuilder);
 
         /* if (conn != null) {
@@ -170,6 +152,31 @@ public class Main {
     public static void startRunning(SequenceBuilder sequenceBuilder) {
         while (true) {
             sequenceBuilder.getMessageUpdater().run();
+        }
+    }
+    private static void executeInitialUpdates(List<String> sqlCalls) {
+        String workingDir = Paths.get("").toAbsolutePath().toString();
+        String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db";
+        Connection connection = null; // we need to make it null because DriverManager#getConnection() doesn't throw a hissy fit if something is wrong.
+        try {
+            connection = DriverManager.getConnection(url);
+            if (connection != null) {
+                for (String s : sqlCalls) {
+                    Statement statement = connection.createStatement();
+                    statement.executeUpdate(s);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                if (connection != null) {
+                    connection.close();
+                }
+            }catch (SQLException ex) {
+                ex.printStackTrace();
+                System.exit(1);
+            }
         }
     }
 }

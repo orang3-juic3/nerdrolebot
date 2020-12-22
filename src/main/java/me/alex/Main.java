@@ -1,5 +1,6 @@
 package me.alex;
 
+import me.alex.discord.CarbonRestImpl;
 import me.alex.discord.ForceUpdate;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
@@ -35,6 +36,7 @@ public class Main {
             ForceUpdate forceUpdate = new ForceUpdate(sequenceBuilder);
             sequenceBuilder.getJda().addEventListener(forceUpdate);
             sequenceBuilder.getRoleUpdater().addListener(forceUpdate);
+            sequenceBuilder.getJda().addEventListener(new CarbonRestImpl());
             firstTimeDatabaseSetup(sequenceBuilder);
         } catch (Exception e) {
             e.printStackTrace();

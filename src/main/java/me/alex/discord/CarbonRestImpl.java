@@ -9,8 +9,10 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 
 import javax.annotation.Nonnull;
+import java.awt.*;
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,36 +40,23 @@ public class CarbonRestImpl extends ListenerAdapter {
         } else {
             return;
         }
-        String backgroundColour = Long.toHexString((long) Math.floor(Math.random() * 16777215));
-        ImageSettings imageSettings = new ImageSettings("seti",message, backgroundColour, null, "auto", null, null);
-        imageSettings.replaceNulls();
-        if (imageSettings.backgroundColor.startsWith("#")) {
-            imageSettings.backgroundColor = imageSettings.backgroundColor.substring(1);
+        StringBuilder backgroundColour = new StringBuilder("rgba(");
+        for (int i = 0; i < 3; i++) {
+            backgroundColour.append(ThreadLocalRandom.current().nextInt(0, 255 + 1)).append(",");
         }
-        File f = new File(Paths.get("").toAbsolutePath().toString() + "/" + e.getMessage().getId() + ".json");
+        backgroundColour.append("1)");
+        ImageSettings imageSettings = new ImageSettings("seti", message, backgroundColour.toString(), null, "auto", null, null);
+        imageSettings.replaceNulls();
         try {
-            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(f));
             String json = gson.toJson(imageSettings);
-            bufferedWriter.write(json);
-            bufferedWriter.close();
             Request request = Request.Post("https://carbonara.now.sh/api/cook");
-            request.bodyFile(f, ContentType.APPLICATION_JSON);
+            request.bodyByteArray(json.getBytes(), ContentType.APPLICATION_JSON);
             HttpResponse httpResponse = request.execute().returnResponse();
             System.out.println(httpResponse.getStatusLine());
             if (httpResponse.getEntity() != null) {
                 File png = new File(Paths.get("").toAbsolutePath().toString() + "/" + e.getMessage().getId() + ".png");
-                OutputStream outputStream = new FileOutputStream(png);
-                outputStream.write(EntityUtils.toByteArray(httpResponse.getEntity()));
-                outputStream.close();
-                e.getChannel().sendFile(png).queue(message1 -> {
-                    try {
-
-                        if (!png.delete() || !f.delete()) {
-                            throw new IOException("Could not delete png or json!");
-                        }
-                    } catch (IOException exc) {
-                        exc.printStackTrace();
-                    }
+                e.getChannel().sendFile(EntityUtils.toByteArray(httpResponse.getEntity()), e.getMessageId() + ".png").queue(message1 -> {
+                    System.out.println("Done sending carbon screenshot.");
                 });
             }
         } catch (IOException ex) {

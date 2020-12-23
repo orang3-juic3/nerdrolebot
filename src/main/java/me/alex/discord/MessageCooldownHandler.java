@@ -41,6 +41,9 @@ public class MessageCooldownHandler extends ListenerAdapter {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
+        if(e.getAuthor().isBot()) {
+            return;
+        }
         if (e.getChannelType() == ChannelType.PRIVATE) {
             return;
         }

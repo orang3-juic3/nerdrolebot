@@ -84,6 +84,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
         messageUpdater.run();
         e.getChannel().sendMessage(response).queue();
+        roleUpdater.removeListener(this);
     }
 
     /**
@@ -93,6 +94,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     public void onEmbedOutputReady(MessageEmbed messageEmbed) {
         response = messageEmbed;
     }
+
     public void dmOutput(MessageReceivedEvent e) {
         long millis = System.currentTimeMillis() - timeOfUpdate;
         String timeDiff = RoleUpdater.getTimeFormatted(millis);

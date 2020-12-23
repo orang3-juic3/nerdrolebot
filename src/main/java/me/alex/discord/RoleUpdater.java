@@ -47,6 +47,9 @@ public class RoleUpdater implements ScoreMapReadyListener {
     public void addListener(RoleUpdater.Output output) {
         listeners.add(output);
     }
+    public void removeListener(RoleUpdater.Output output) {
+        listeners.remove(output);
+    }
 
     /**
      * @param scoreMap A hashmap with User IDs and the amount of messages they have sent.

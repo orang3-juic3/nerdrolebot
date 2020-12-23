@@ -12,6 +12,8 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
@@ -94,48 +96,34 @@ public class Main {
             throw new InvalidConfigurationException("Invalid server id for id " + configurationValues.serverId + "!");
         }
         List<TextChannel> channels = guild.getTextChannels();
-        long time = System.currentTimeMillis();
         User botId = jda.getSelfUser();
         final Member botMember = Objects.requireNonNull(jda.getGuildById(configurationValues.serverId)).getMember(botId);
         if (botMember == null) {
             throw new NullPointerException("Null bot!");
         }
-        AtomicInteger masterCounter = new AtomicInteger();
+        AtomicInteger masterCounter = new AtomicInteger(0);
         AtomicBoolean executeUpdates = new AtomicBoolean(false);
         List<String> sqlCalls = new CopyOnWriteArrayList<>();
-        for (TextChannel i: channels) {
-            if (Arrays.asList(configurationValues.ignoredChannels).contains(i.getIdLong()) || !i.canTalk(botMember)) {
-                masterCounter.getAndIncrement();
+        final long weekInMillis = (long) 6.048e+8;
+        final long time = System.currentTimeMillis();
+        final long compareTime = time - (weekInMillis * configurationValues.weeksOfData);
+        for (TextChannel channel: channels) {
+            if (Arrays.asList(configurationValues.ignoredChannels).contains(channel.getIdLong()) || !channel.canTalk(botMember)) {
+                executeUpdates.set(masterCounter.getAndIncrement() == channels.size() - 1);
                 continue;
             }
-            MessageHistory.getHistoryBefore(i, i.getLatestMessageId()).queue(j -> {
-                if (j.isEmpty()) return;
-                List<Message> messages = j.getRetrievedHistory();
-                long weekInMillis = (long) 6.048e+8;
-                messages = messages.stream().filter(Objects::nonNull)// remove nullular objectificationisations.
-                        .filter(message -> !message.getAuthor().isBot())
-                        .filter(
-                                message -> (message.getTimeCreated().toEpochSecond() * 1000) >
-                                        time - (weekInMillis * configurationValues.weeksOfData)).collect(Collectors.toList());
-                HashMap<Long, Long> messagesSent = new HashMap<>(); //User ids and the epoch time of their most recent message sent.
-                for (int k = 0; k < messages.size(); k++) {
-                    messagesSent.putIfAbsent(messages.get(k).getAuthor().getIdLong(), messages.get(k).getTimeCreated().toEpochSecond() * 1000);
-                    if (messagesSent.get(messages.get(k).getAuthor().getIdLong()) - messages.get(k).getTimeCreated().toEpochSecond() * 1000 > configurationValues.messageCooldown) {
-                        messagesSent.put(messages.get(k).getAuthor().getIdLong(), messages.get(k).getTimeCreated().toEpochSecond() * 1000);
-                        messages.set(k, null); // make it so that messages that were sent before the cooldown was over are NULLIFIED!!!
-                    } else {
-                        messagesSent.put(messages.get(k).getAuthor().getIdLong(), messages.get(k).getTimeCreated().toEpochSecond() * 1000);
-                    }
+            MessageHistory messageHistory = MessageHistory.getHistoryBefore(channel, channel.getLatestMessageId()).limit(100).complete();
+            List<Message> messages = messageHistory.getRetrievedHistory();
+            while (!messages.isEmpty()) {
+                Message placeholderMsg = messages.get(messages.size() - 1);
+                for (Message message : messages) {
+                    sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getIdLong(), message.getTimeCreated().toEpochSecond() * 1000));
                 }
-                messages = messages.stream().filter(Objects::nonNull).collect(Collectors.toList()); // remove the nulls that we just made:)
-                for (Message m: messages) {
-                    sqlCalls.add(String.format("INSERT INTO messages VALUES (%s, %s)", m.getAuthor().getIdLong(), m.getTimeCreated().toEpochSecond() * 1000));
-                }
-                masterCounter.getAndIncrement();
-                if (masterCounter.get() == channels.size() - 1) {
-                    executeUpdates.set(true);
-                }
-            }); // keep only messages that are less than 2 weeks old.
+                messageHistory = MessageHistory.getHistoryBefore(channel, placeholderMsg.getId()).limit(100).complete();
+                messages = messageHistory.getRetrievedHistory();
+                messages = messages.stream().filter(message -> message.getTimeCreated().toEpochSecond() * 1000 - compareTime >= 0).collect(Collectors.toList());
+            }
+            executeUpdates.set(masterCounter.getAndIncrement() == channels.size() - 1);
         }
         while (!executeUpdates.get()) {
             //wait because i dont know how to fucking do it better

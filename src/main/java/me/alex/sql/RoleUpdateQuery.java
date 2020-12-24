@@ -19,7 +19,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     private final long sleepTime;
     private boolean safeToAccess = true;
     private final ArrayList<ScoreMapReadyListener> scoreMapReadyListeners = new ArrayList<>();
-    private final DatabaseConnectionManager databaseConnectionManager;
+    private final DatabaseManager databaseManager;
 
     /**
      * @param scoreMapReadyListener Adds a ScoreMapReadyListener instance to the listener ArrayList.
@@ -33,28 +33,28 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     /**
      * The preferred constructor for this class, where the delay is the one defined in ConfigurationValues
      * @param configurationValues The instance of the ConfigurationValues, needed to set various things across the code.
-     * @param databaseConnectionManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
+     * @param databaseManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
      * @see ConfigurationValues
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see DatabaseAccessListener
      */
-    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseConnectionManager databaseConnectionManager) {
+    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseManager databaseManager) {
         this.configurationValues = configurationValues;
-        databaseConnectionManager.addListener(this);
-        this.databaseConnectionManager = databaseConnectionManager;
+        databaseManager.addListener(this);
+        this.databaseManager = databaseManager;
         sleepTime = configurationValues.delay;
     }
 
     /**
      * An alternative constructor where the delay is defined by the caller. It is better to use the predefined delay.
      * @param configurationValues The instance of the ConfigurationValues, needed to set various things across the code.
-     * @param databaseConnectionManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
+     * @param databaseManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
      * @param sleepTime The amount of time before the thread finishes executing.
      */
-    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseConnectionManager databaseConnectionManager, long sleepTime) {
+    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseManager databaseManager, long sleepTime) {
         this.configurationValues = configurationValues;
-        databaseConnectionManager.addListener(this);
-        this.databaseConnectionManager = databaseConnectionManager;
+        databaseManager.addListener(this);
+        this.databaseManager = databaseManager;
         this.sleepTime = sleepTime;
     }
 
@@ -62,16 +62,16 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
      * The run method for the thread that is created by MessageUpdater for this class. It checks whether it is safe to access the database, then queries it.
      * If it isn't safe to access the database, the process is put in a queue, and gets executed when it is safe to access the database again.
      * @see MessageUpdater
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see DatabaseAccessListener
      */
     @Override
     public void run() {
         if (safeToAccess) {
             inQueue = false;
-            databaseConnectionManager.notifyAccess();
+            databaseManager.notifyAccess();
             setScoreMap();
-            databaseConnectionManager.notifyStopAccess();
+            databaseManager.notifyStopAccess();
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
@@ -84,7 +84,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
 
     /**
      * When the database is accessed, this makes sure that the thread will not attempt to access the database.
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see DatabaseAccessListener
      */
     @Override
@@ -94,15 +94,15 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
 
     /**
      * When the database has stopped being accessed, the process gets executed if it is in a queue.
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see DatabaseAccessListener
      */
     @Override
     public void onDatabaseStopAccessEvent()  {
         if (inQueue) {
-            databaseConnectionManager.notifyAccess();
+            databaseManager.notifyAccess();
             setScoreMap();
-            databaseConnectionManager.notifyStopAccess();
+            databaseManager.notifyStopAccess();
             try {
                 Thread.sleep(120000);
             } catch (InterruptedException e) {
@@ -166,9 +166,9 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
 
     /**
      * @return Returns the instance of DatabaseConnectionManager associated with this class.
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      */
-    public DatabaseConnectionManager getDatabaseConnectionManager() {
-        return databaseConnectionManager;
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
     }
 }

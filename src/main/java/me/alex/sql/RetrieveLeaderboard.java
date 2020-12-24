@@ -10,21 +10,19 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class RetrieveLeaderboard implements DatabaseAccessListener {
     private boolean safeToAccess = true;
     private final ConfigurationValues configurationValues;
-    private final DatabaseConnectionManager databaseConnectionManager;
+    private final DatabaseManager databaseManager;
     private final Map<MessageReceivedEvent, Integer> queueEvents = new HashMap<>();
     private final JDA jda;
 
-    public RetrieveLeaderboard(ConfigurationValues configurationValues, DatabaseConnectionManager databaseConnectionManager, JDA jda) {
+    public RetrieveLeaderboard(ConfigurationValues configurationValues, DatabaseManager databaseManager, JDA jda) {
         this.configurationValues = configurationValues;
-        this.databaseConnectionManager = databaseConnectionManager;
+        this.databaseManager = databaseManager;
         this.jda = jda;
     }
     public void retrievePosition(MessageReceivedEvent e) {

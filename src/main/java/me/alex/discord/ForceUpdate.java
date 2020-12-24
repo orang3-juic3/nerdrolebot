@@ -1,8 +1,8 @@
 package me.alex.discord;
 
+import me.alex.Bot;
 import me.alex.ConfigurationValues;
-import me.alex.SequenceBuilder;
-import me.alex.sql.DatabaseConnectionManager;
+import me.alex.sql.DatabaseManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.EmbedBuilder;
@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     private final ConfigurationValues configurationValues;
-    private final DatabaseConnectionManager databaseConnectionManager;
+    private final DatabaseManager databaseManager;
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdater roleUpdater;
     private MessageEmbed response = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
@@ -32,24 +32,24 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     private boolean command;
 
     /**
-     * @param sequenceBuilder SequenceBuilder provides instances of the required classes to build the threads that can be used to create more instances
+     * @param bot SequenceBuilder provides instances of the required classes to build the threads that can be used to create more instances
      * while still maintaining only one connection to the database at any one time.
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see me.alex.sql.DatabaseAccessListener
-     * @see SequenceBuilder
+     * @see Bot
      */
-    public ForceUpdate(SequenceBuilder sequenceBuilder) {
-        configurationValues = sequenceBuilder.getConfigurationValues();
-        databaseConnectionManager = sequenceBuilder.getDatabaseConnectionManager();
-        messageCooldownHandler = sequenceBuilder.getMessageCooldownHandler();
-        roleUpdater = new RoleUpdater(sequenceBuilder.getJda(), configurationValues, true);
+    public ForceUpdate(Bot bot) {
+        configurationValues = bot.getConfigurationValues();
+        databaseManager = bot.getDatabaseManager();
+        messageCooldownHandler = bot.getMessageCooldownHandler();
+        roleUpdater = new RoleUpdater(bot.getJda(), configurationValues, true);
     }
 
     /**
      * This method does one iteration of the cycle that the main class does.
      * @param e The MessageReceivedEvent object received when a user sends a message.
      * @see me.alex.Main
-     * @see SequenceBuilder
+     * @see Bot
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
@@ -78,7 +78,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         if(!carryOn) {
             return;
         }
-        RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseConnectionManager,0);
+        RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseManager,0);
         roleUpdater.addListener(this);
         roleUpdateQuery.addListener(roleUpdater);
         MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);

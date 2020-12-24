@@ -91,7 +91,7 @@ public class ConfigurationValues {
                 instance.roleId = 706554375572684860L;
                 instance.serverId = 679434326282207238L;
                 instance.botToken = "NzExOTk1MjExMzc0Mzk1NDEy.XsLHNg.IZgzg4W7RwkExCYNXa7vmc_L5us";
-                instance.messageCooldown = 6000L;
+                instance.messageCooldown = 60000L;
                 instance.rolesAllowedToUpdate = new Long[] {718236096814645289L,772163720062173214L };
                 instance.ignoredChannels = new Long[] {738006372725293086L};
                 instance.topPercentage = 50;

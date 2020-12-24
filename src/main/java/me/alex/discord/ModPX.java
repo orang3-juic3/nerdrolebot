@@ -1,4 +1,4 @@
-package me.alex;
+package me.alex.discord;
 
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;

@@ -1,50 +1,60 @@
 package me.alex;
 
-import me.alex.discord.MessageCooldownHandler;
-import me.alex.discord.RoleUpdater;
-import me.alex.sql.DatabaseConnectionManager;
+import me.alex.discord.*;
+import me.alex.sql.DatabaseManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
+import javax.security.auth.login.LoginException;
 import java.util.EnumSet;
 
 /**
  * A class designed to making the whole building process easier. Registers listeners, passes around instances accordingly etc.
  * It also gets the main loop started.
  */
-public class SequenceBuilder {
+public class Bot {
     private ConfigurationValues configurationValues;
     private JDA jda;
-    private DatabaseConnectionManager databaseConnectionManager;
+    private DatabaseManager databaseManager;
     private RoleUpdateQuery roleUpdateQuery;
     private MessageCooldownHandler messageCooldownHandler;
     private MessageUpdater messageUpdater;
     private RoleUpdater roleUpdater;
 
+
     /**
-     * Does the building of the class.
+     * Does the bot making.
      * <b>Do not use any of the getters or setters without calling this function!</b>
      * @throws Exception
      */
-    public void build() throws Exception {
+    public Bot() {
         configurationValues = ConfigurationValues.getInstance();
         if (configurationValues == null) {
             System.exit(1);
         }
         EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
         JDABuilder jdaBuilder = JDABuilder.create(ConfigurationValues.getInstance().botToken, gatewayIntents);
-        jda = jdaBuilder.build();
-        jda.awaitReady();
-        databaseConnectionManager = new DatabaseConnectionManager();
-        roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseConnectionManager);
+        try {
+            jda = jdaBuilder.build();
+            jda.awaitReady();
+        } catch (LoginException | InterruptedException e) {
+            e.printStackTrace();
+            return;
+        }
+        databaseManager = new DatabaseManager();
+        roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseManager);
         roleUpdater = new RoleUpdater(jda, configurationValues, false);
         roleUpdateQuery.addListener(roleUpdater);
         messageCooldownHandler = new MessageCooldownHandler(configurationValues, jda);
         messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
         jda.addEventListener(messageCooldownHandler);
+        jda.addEventListener(new ModPX());
+        ForceUpdate forceUpdate = new ForceUpdate(this);
+        jda.addEventListener(forceUpdate);
+        jda.addEventListener(new CarbonRestImpl());
     }
 
     /**
@@ -82,19 +92,19 @@ public class SequenceBuilder {
 
     /**
      * @return An instance of the databaseConnectionManager or null if you haven't called SequenceBuilder#build(). This will have listeners inside.
-     * @see SequenceBuilder
-     * @see DatabaseConnectionManager
+     * @see Bot
+     * @see DatabaseManager
      */
-    public DatabaseConnectionManager getDatabaseConnectionManager() {
-        return databaseConnectionManager;
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
     }
 
     /**
-     * @param databaseConnectionManager Sets the instance of DatabaseConnectionManager within this class
-     * @see DatabaseConnectionManager
+     * @param databaseManager Sets the instance of DatabaseConnectionManager within this class
+     * @see DatabaseManager
      */
-    public void setDatabaseConnectionManager(DatabaseConnectionManager databaseConnectionManager) {
-        this.databaseConnectionManager = databaseConnectionManager;
+    public void setDatabaseManager(DatabaseManager databaseManager) {
+        this.databaseManager = databaseManager;
     }
 
     /**

@@ -31,15 +31,15 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
     /**
      * The main method this thread runs. If it is safe to access the database, it will update the database, then start a thread of a RoleUpdateQuery instance.
      * @see DatabaseAccessListener
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see RoleUpdateQuery
      */
     @Override
     public void run() {
         if (safeToAccess) {
-            roleUpdateQuery.getDatabaseConnectionManager().notifyAccess();
+            roleUpdateQuery.getDatabaseManager().notifyAccess();
             updateMessageTable();
-            roleUpdateQuery.getDatabaseConnectionManager().notifyStopAccess();
+            roleUpdateQuery.getDatabaseManager().notifyStopAccess();
             roleUpdateQuery.run();
         } else {
             inQueue = true;
@@ -48,7 +48,7 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
 
     /**
      * When the database is accessed, this makes sure that the thread will not attempt to access the database.
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see DatabaseAccessListener
      */
     @Override
@@ -57,15 +57,15 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
     }
     /**
      * When the database has stopped being accessed, the process gets executed if it is in a queue.
-     * @see DatabaseConnectionManager
+     * @see DatabaseManager
      * @see DatabaseAccessListener
      */
     @Override
     public void onDatabaseStopAccessEvent() {
         if (inQueue) {
-            roleUpdateQuery.getDatabaseConnectionManager().notifyAccess();
+            roleUpdateQuery.getDatabaseManager().notifyAccess();
             updateMessageTable();
-            roleUpdateQuery.getDatabaseConnectionManager().notifyStopAccess();
+            roleUpdateQuery.getDatabaseManager().notifyStopAccess();
             roleUpdateQuery.run();
         }
     }

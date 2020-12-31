@@ -14,6 +14,7 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
+            ConfigurationValues.loadConfig();
             Bot bot = new Bot();
             DatabaseManager databaseManager = bot.getDatabaseManager();
             databaseManager.firstTimeDatabaseSetup(bot);
@@ -27,6 +28,4 @@ public class Main {
             bot.getMessageUpdater().run();
         }
     }
-
-
 }

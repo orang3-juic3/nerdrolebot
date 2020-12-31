@@ -1,59 +1,93 @@
 package me.alex.sql;
 
 import me.alex.ConfigurationValues;
-import net.dv8tion.jda.api.JDA;
+import me.alex.InvalidConfigurationException;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.File;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
-public class RetrieveLeaderboard implements DatabaseAccessListener {
-    private boolean safeToAccess = true;
-    private final ConfigurationValues configurationValues;
-    private final DatabaseManager databaseManager;
-    private final Map<MessageReceivedEvent, Integer> queueEvents = new HashMap<>();
-    private final JDA jda;
+public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapReadyListener {
+    private HashMap<Long, Long> scoreMap = null;
+    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
 
-    public RetrieveLeaderboard(ConfigurationValues configurationValues, DatabaseManager databaseManager, JDA jda) {
-        this.configurationValues = configurationValues;
-        this.databaseManager = databaseManager;
-        this.jda = jda;
+    @Override
+    synchronized public void onFullScoreMapReadyEvent(HashMap<Long, Long> fullScoreMap) { // so we don change the fullscore while it is being read.
+        scoreMap = fullScoreMap;
     }
-    public void retrievePosition(MessageReceivedEvent e) {
-        if (safeToAccess) {
-            Connection conn = null;
-            String url = "jdbc:sqlite:" + Paths.get("").toAbsolutePath().toString() + File.separator + "nerds.db";
+    @Override
+    public void onMessageReceived(@NotNull MessageReceivedEvent e) {
+        if (!e.getMessage().getContentRaw().startsWith("!lead") && !e.getMessage().getContentRaw().startsWith("!leaderboard")) return;
+        String[] splitMessage = e.getMessage().getContentRaw().split(" ");
+        if (scoreMap == null) {
+            e.getChannel().sendMessage("We have no data yet! Try running !update.").queue();
+            return;
+        }
+        Guild guild = e.getJDA().getGuildById(configurationValues.serverId);
+        if (guild == null) {
             try {
-                conn = DriverManager.getConnection(url);
-                Statement statement = conn.createStatement();
-                statement.executeUpdate("");
-            } catch (SQLException ex) {
+                throw new InvalidConfigurationException("Server cannot be null!");
+            } catch (InvalidConfigurationException ex) {
                 ex.printStackTrace();
-            } finally {
-                try {
-                    if (conn != null) {
-                        conn.close();
-                    }
-                } catch (SQLException exc) {
-                    exc.printStackTrace();
-                }
+                e.getChannel().sendMessage("Cannot retrieve leaderboard because the guildId was specified incorrectly!").queue();
+                return;
             }
         }
-    }
+        guild.loadMembers().onSuccess(members -> {
+            members.removeIf(Objects::isNull);
+            List<Member> mentionedMembers = e.getMessage().getMentionedMembers();
+            StringBuilder leaderboardMsg = new StringBuilder();
+            members.removeIf(member -> member.getUser().isBot());
+            members.removeIf(member -> scoreMap.getOrDefault(member.getIdLong(), 0L) == 0);
+            members.sort(Comparator.comparingLong((member) -> scoreMap.get(member.getIdLong())));
+            Collections.reverse(members);
+            if (splitMessage.length == 1 && mentionedMembers.isEmpty()) {
+                Member author = e.getMember();
+                if (author == null) {
+                    e.getChannel().sendMessage("For some reason, you are null.").queue();
+                    return;
+                }
+                leaderboardMsg.append(String.format("You are number %s on the leaderboard with %s messages.", members.indexOf(author) + 1, scoreMap.get(author.getUser().getIdLong())));
+                e.getChannel().sendMessage(leaderboardMsg.toString()).queue();
+            } else if (!mentionedMembers.isEmpty()) {
+                for (Member member : mentionedMembers) {
+                    if (member == null) {
+                        leaderboardMsg.append("A mentioned member is null.\n");
+                        continue;
+                    }
+                    String memberName = member.getEffectiveName();
+                    int position = members.indexOf(member) + 1;
+                    Long messages = scoreMap.get(member.getUser().getIdLong());
+                    if (messages == null) {
+                        leaderboardMsg.append("We do not have this user in our database.\n");
+                        continue;
+                    }
+                    leaderboardMsg.append(String.format("%s is number %s on the leaderboard with %s messages\n",memberName, position, messages));
+                }
+                e.getChannel().sendMessage(leaderboardMsg.toString()).queue();
+            } else if (splitMessage[1].matches("[0-9]+")) {
+                int top = Integer.parseInt(splitMessage[1]);
+                if (top > members.size()) {
+                    e.getChannel().sendMessage("Sorry this number is too large. Please try again.").queue();
+                    return;
+                } else if (top <= 0) {
+                    e.getChannel().sendMessage("Sorry this number is too small. Please try again").queue();
+                    return;
+                }
+                for (int i = 0; i < top; i++) {
+                    Member currentMember = members.get(i);
+                    leaderboardMsg.append(String.format("%s. User %s with %s messages.\n", i + 1, currentMember.getEffectiveName(), scoreMap.get(currentMember.getUser().getIdLong())));
+                }
+                if (leaderboardMsg.length() > 2000) {
+                    e.getChannel().sendMessage("Sorry this number is too large. Please try again.").queue();
+                } else {
+                    e.getChannel().sendMessage(leaderboardMsg.toString()).queue();
+                }
 
-    @Override
-    public void onDatabaseAccessEvent() {
-        safeToAccess = false;
-    }
-
-    @Override
-    public void onDatabaseStopAccessEvent() {
-
+            }
+        });
     }
 }

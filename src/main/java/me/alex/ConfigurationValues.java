@@ -69,16 +69,7 @@ public class ConfigurationValues {
     public String botToken;
     private ConfigurationValues() {
     }
-
-    /**
-     * This method reads the configuration and assigns values accordingly. In the case of a configuration not existing, it uses default values and creates a configuration.
-     * @return Returns <b>the instance</b> of ConfigurationValues.
-     * @see Gson
-     */
-    public static synchronized ConfigurationValues getInstance() {
-        if(instance == null){
-            instance = new ConfigurationValues();
-        }
+    public static void loadConfig() {
         try {
             String workingDir = Paths.get("").toAbsolutePath().toString();
             File f = new File(workingDir + "/conf.json");
@@ -107,14 +98,21 @@ public class ConfigurationValues {
                 config.append(line);
             }
             Gson gson = new Gson();
-            instance = gson.fromJson(config.toString(), instance.getClass());
+            instance = gson.fromJson(config.toString(), ConfigurationValues.class);
             if (instance.topPercentage > 100 || instance.topPercentage< 0) {
                 throw new InvalidConfigurationException("The value top percentage in conf.json cannot be less than 0 or larger than 100!");
             }
         } catch (IOException e) {
             e.printStackTrace();
-            return null;
         }
+    }
+
+    /**
+     * This method reads the configuration and assigns values accordingly. In the case of a configuration not existing, it uses default values and creates a configuration.
+     * @return Returns <b>the instance</b> of ConfigurationValues.
+     * @see Gson
+     */
+    public static synchronized ConfigurationValues getInstance() {
         return instance;
     }
 }

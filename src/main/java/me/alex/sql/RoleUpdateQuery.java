@@ -14,7 +14,7 @@ import java.util.HashMap;
  * This class deals with querying the SQL database for messages sent.
  */
 public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
-    private final ConfigurationValues configurationValues;
+    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
     private boolean inQueue = false;
     private final long sleepTime;
     private boolean safeToAccess = true;
@@ -32,14 +32,12 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
 
     /**
      * The preferred constructor for this class, where the delay is the one defined in ConfigurationValues
-     * @param configurationValues The instance of the ConfigurationValues, needed to set various things across the code.
      * @param databaseManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
      * @see ConfigurationValues
      * @see DatabaseManager
      * @see DatabaseAccessListener
      */
-    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseManager databaseManager) {
-        this.configurationValues = configurationValues;
+    public RoleUpdateQuery(DatabaseManager databaseManager) {
         databaseManager.addListener(this);
         this.databaseManager = databaseManager;
         sleepTime = configurationValues.delay;
@@ -47,12 +45,10 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
 
     /**
      * An alternative constructor where the delay is defined by the caller. It is better to use the predefined delay.
-     * @param configurationValues The instance of the ConfigurationValues, needed to set various things across the code.
      * @param databaseManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
      * @param sleepTime The amount of time before the thread finishes executing.
      */
-    public RoleUpdateQuery(ConfigurationValues configurationValues, DatabaseManager databaseManager, long sleepTime) {
-        this.configurationValues = configurationValues;
+    public RoleUpdateQuery(DatabaseManager databaseManager, long sleepTime) {
         databaseManager.addListener(this);
         this.databaseManager = databaseManager;
         this.sleepTime = sleepTime;
@@ -136,8 +132,9 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
                 ResultSet resultSet = statement.getResultSet();
                 while (resultSet.next()) {
                     long id = resultSet.getLong("id");
-                    if (!Arrays.asList(configurationValues.exemptionList).contains(id)) scoreMap.put(id, null);
+                    scoreMap.put(id, null);
                 }
+                HashMap<Long, Long> allScoreMap = new HashMap<>(scoreMap);
                 for (long i : scoreMap.keySet()) {
                     sql = String.format("SELECT count(id) FROM messages WHERE time >= %s - %s and id = %s", System.currentTimeMillis(), (weekInMillis * configurationValues.weeksOfData), i);
                     statement = conn.createStatement();
@@ -147,8 +144,18 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
                         scoreMap.put(i, resultSet.getLong("count(id)"));
                     }
                 }
+                for (long i : allScoreMap.keySet()) {
+                    sql = String.format("SELECT count(id) FROM messages WHERE id = %s", i);
+                    statement = conn.createStatement();
+                    statement.execute(sql);
+                    resultSet = statement.getResultSet();
+                    while (resultSet.next()) {
+                        allScoreMap.put(i, resultSet.getLong("count(id)"));
+                    }
+                }
                 for (ScoreMapReadyListener scoreMapReadyListener : scoreMapReadyListeners) {
                     scoreMapReadyListener.onScoreMapReadyEvent(scoreMap);
+                    scoreMapReadyListener.onFullScoreMapReadyEvent(allScoreMap);
                 }
             }
         } catch (SQLException e) {

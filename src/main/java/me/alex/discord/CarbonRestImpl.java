@@ -9,7 +9,6 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 
 import javax.annotation.Nonnull;
-import java.awt.*;
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.concurrent.ThreadLocalRandom;
@@ -40,6 +39,7 @@ public class CarbonRestImpl extends ListenerAdapter {
         } else {
             return;
         }
+        e.getChannel().sendMessage("Retrieving carbon image..").queue();
         StringBuilder backgroundColour = new StringBuilder("rgba(");
         for (int i = 0; i < 3; i++) {
             backgroundColour.append(ThreadLocalRandom.current().nextInt(0, 255 + 1)).append(",");
@@ -54,8 +54,8 @@ public class CarbonRestImpl extends ListenerAdapter {
             HttpResponse httpResponse = request.execute().returnResponse();
             System.out.println(httpResponse.getStatusLine());
             if (httpResponse.getEntity() != null) {
-                File png = new File(Paths.get("").toAbsolutePath().toString() + "/" + e.getMessage().getId() + ".png");
                 e.getChannel().sendFile(EntityUtils.toByteArray(httpResponse.getEntity()), e.getMessageId() + ".png").queue(message1 -> {
+                    e.getChannel().sendMessage(String.format("<@!%s>", e.getAuthor().getId())).queue();
                     System.out.println("Done sending carbon screenshot.");
                 });
             }

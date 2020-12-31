@@ -17,19 +17,12 @@ import java.util.HashMap;
  * @see ConfigurationValues
  */
 public class MessageCooldownHandler extends ListenerAdapter {
-    private final ConfigurationValues configurationValues;
-    private final JDA jda;
+    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
 
     /**
-     * @param configurationValues Instance of ConfigurationValues associated with this class.
-     * @param jda JDA instance that all Discord api calls are done with.
      * @see JDA
      * @see ConfigurationValues
      */
-    public MessageCooldownHandler(ConfigurationValues configurationValues, JDA jda) {
-        this.configurationValues = configurationValues;
-        this.jda = jda;
-    }
     private final HashMap<User,Long> cooldowns = new HashMap<>();
     private final ArrayList<User> users = new ArrayList<>();
     private final ArrayList<Long> timeStamp = new ArrayList<>();
@@ -47,7 +40,7 @@ public class MessageCooldownHandler extends ListenerAdapter {
         if (e.getChannelType() == ChannelType.PRIVATE) {
             return;
         }
-        if (!e.getGuild().equals(jda.getGuildById(configurationValues.serverId))) {
+        if (!e.getGuild().equals(e.getJDA().getGuildById(configurationValues.serverId))) {
             return;
         }
         if (Arrays.asList(configurationValues.ignoredChannels).contains(e.getChannel().getIdLong())) return;

@@ -22,7 +22,7 @@ import java.util.List;
  * @see ConfigurationValues
  */
 public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
-    private final ConfigurationValues configurationValues;
+    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
     private final DatabaseManager databaseManager;
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdater roleUpdater;
@@ -39,10 +39,9 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
      * @see Bot
      */
     public ForceUpdate(Bot bot) {
-        configurationValues = bot.getConfigurationValues();
         databaseManager = bot.getDatabaseManager();
         messageCooldownHandler = bot.getMessageCooldownHandler();
-        roleUpdater = new RoleUpdater(bot.getJda(), configurationValues, true);
+        roleUpdater = new RoleUpdater(bot.getJda(), true);
     }
 
     /**
@@ -78,7 +77,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         if(!carryOn) {
             return;
         }
-        RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseManager,0);
+        RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager,0);
         roleUpdater.addListener(this);
         roleUpdateQuery.addListener(roleUpdater);
         MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);

@@ -21,23 +21,21 @@ import java.util.stream.Collectors;
 public class RoleUpdater implements ScoreMapReadyListener {
 
     private final JDA jda;
-    private final ConfigurationValues configurationValues;
+    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
     private HashMap<Long, Long> scoreMap;
     private final ArrayList<RoleUpdater.Output> listeners = new ArrayList<>();
     private final boolean command;
 
     /**
      * @param jda The JDA instance being used for this bot.
-     * @param configurationValues The ConfigurationValues instance being used for this bot to set and get many values defined in the conf.json.
      * @param command Checks whether the update is called by a discord user.
      * @see JDA
      * @see ConfigurationValues
      * @see net.dv8tion.jda.api.entities.User
      */
-    public RoleUpdater(JDA jda, ConfigurationValues configurationValues, boolean command) {
+    public RoleUpdater(JDA jda, boolean command) {
         this.command = command;
         this.jda = jda;
-        this.configurationValues = configurationValues;
     }
 
     /**
@@ -59,6 +57,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
     @Override
     public void onScoreMapReadyEvent(HashMap<Long, Long> scoreMap) {
         if (scoreMap == null || scoreMap.size() == 0) return;
+        scoreMap.keySet().removeAll(Arrays.asList(configurationValues.exemptionList));
         this.scoreMap = scoreMap;
         Guild guild = jda.getGuildById(configurationValues.serverId);
         if (guild == null) {
@@ -90,30 +89,27 @@ public class RoleUpdater implements ScoreMapReadyListener {
             System.err.println(String.format("Unknown role for id \"%s\"!", this.configurationValues.roleId));
             return;
         }
-        members.removeIf((member) -> member.getUser().isBot());
-        members.sort(Comparator.comparingLong((member) -> scoreMap.getOrDefault(member.getIdLong(), 0L)));
+        List<Member> originalMembers = new ArrayList<>(members);
+        members.removeIf(member -> member.getUser().isBot());
+        members.removeIf(member -> scoreMap.getOrDefault(member.getIdLong(), 0L) == 0);
+        members.sort(Comparator.comparingLong((member) -> scoreMap.get(member.getIdLong())));
         Collections.reverse(members);
-        long messageMembersCount = scoreMap.size();
+        long messageMembersCount = members.size();
         long topMembers = (long) Math.ceil(messageMembersCount * (configurationValues.topPercentage /100));
-        for (int i = (int) topMembers; i < members.size() - 1; i++) { // so that values that are the same get included.
-            if (members.get(i + 1) == members.get(i)) {
-                topMembers++;
-            } else {
-                break;
-            }
-        }
+        members = members.subList(0, (int) topMembers + 1);
         List<Member> rolesAdded = new ArrayList<>();
         List<Member> rolesRemoved = new ArrayList<>();
-        for(int i = 0; i < members.size(); ++i) {
-            Member member = members.get(i);
-            if (i < topMembers) {
-                if (!member.getRoles().contains(role)) {
-                    rolesAdded.add(member);
-                    guild.addRoleToMember(member, role).queue();
-                }
-            } else if (member.getRoles().contains(role)) {
-                rolesRemoved.add(member);
+        for (Member member : members) {
+            if (!member.getRoles().contains(role)) {
+                guild.addRoleToMember(member, role).queue();
+                rolesAdded.add(member);
+            }
+        }
+        originalMembers.removeAll(members);
+        for (Member member : originalMembers) {
+            if (member.getRoles().contains(role)) {
                 guild.removeRoleFromMember(member, role).queue();
+                rolesRemoved.add(member);
             }
         }
         RolesChanged rolesChanged = new RolesChanged(rolesAdded, rolesRemoved);

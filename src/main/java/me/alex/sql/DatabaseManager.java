@@ -3,6 +3,7 @@ package me.alex.sql;
 import me.alex.Bot;
 import me.alex.ConfigurationValues;
 import me.alex.InvalidConfigurationException;
+import me.alex.Main;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 
@@ -12,6 +13,7 @@ import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
@@ -58,6 +60,74 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     * This method is called every time the program starts. It ensures the database exists and if not, makes a new one.
+     * @throws IOException
+     * @throws ClassNotFoundException
+     * @param bot the sequence builder.
+     * @see ConfigurationValues
+     */
+    public void firstTimeDatabaseSetup(Bot bot) throws IOException, ClassNotFoundException {
+        JDA jda = bot.getJda();
+        ConfigurationValues configurationValues = bot.getConfigurationValues();
+        Class.forName("org.sqlite.JDBC");
+        if (new File(workingDir + File.separator + "nerds.db").exists()){
+            startRunning(bot);
+            return;
+        }
+        System.err.println("Could not find existing nerds database, creating...");
+        initializeTables();
+        Guild guild = jda.getGuildById(configurationValues.serverId);
+        if (guild == null) throw new InvalidConfigurationException("Invalid server id for id " + configurationValues.serverId + "!");
+        List<TextChannel> channels = guild.getTextChannels();
+        Member botMember = guild.getMember(jda.getSelfUser());
+        if (botMember == null) throw new NullPointerException("Null bot!");
+        AtomicInteger masterCounter = new AtomicInteger(0);
+        List<String> sqlCalls = new ArrayList<>();
+        final long time = System.currentTimeMillis();
+        final long weekInMillis = (long) 6.048e+8;
+        final long weeksAgo = time - (weekInMillis * configurationValues.weeksOfData);
+        final HashMap<Long, Long> cooldownMap = new HashMap<>();
+        for (TextChannel channel: channels) {
+            if (Arrays.asList(configurationValues.ignoredChannels).contains(channel.getIdLong()) || !channel.canTalk(botMember)) {
+                masterCounter.getAndIncrement();
+                if (masterCounter.get() == channels.size()) {
+                    executeSQLCalls(sqlCalls);
+                    System.out.println("done!");
+                    startRunning(bot);
+                }
+                continue;
+            }
+            List<Message> messages;
+            String currentMessageID = channel.getLatestMessageId();
+            do {
+                MessageHistory messageHistory = MessageHistory.getHistoryBefore(channel, currentMessageID).limit(100).complete();
+                messages = messageHistory.getRetrievedHistory();
+                if (messages.isEmpty()) continue;
+                messages = messages.stream().filter(message -> !message.getAuthor().isBot()).collect(Collectors.toList());
+                currentMessageID = messages.get(messages.size() - 1).getId();
+                messages = messages.stream().filter(message -> message.getTimeCreated().toEpochSecond() * 1000 - weeksAgo >= 0).collect(Collectors.toList());
+                for (Message message : messages) {
+                    Long timeMade = message.getTimeCreated().toEpochSecond() * 1000;
+                    Long lastTime = cooldownMap.get(message.getAuthor().getIdLong());
+                    if (lastTime == null) { // im such a nink. were iterating backwards in terms of time
+                        cooldownMap.put(message.getAuthor().getIdLong(), timeMade);
+                        sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getId(), message.getTimeCreated().toEpochSecond() * 1000));
+                    } else if (lastTime - timeMade >= configurationValues.messageCooldown) {
+                        cooldownMap.put(message.getAuthor().getIdLong(), timeMade);
+                        sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getId(), message.getTimeCreated().toEpochSecond() * 1000));
+                    }
+                }
+            }
+            while (!messages.isEmpty());
+            masterCounter.getAndIncrement();
+            if (masterCounter.get() == channels.size()) {
+                executeSQLCalls(sqlCalls);
+                System.out.println("done!");
+                startRunning(bot);
+            }
+        }
+    }
     private void executeSQLCalls(List<String> sqlCalls) {
         Connection connection = null; // we need to make it null because DriverManager#getConnection() doesn't throw a hissy fit if something is wrong.
         try {
@@ -110,69 +180,6 @@ public class DatabaseManager {
                 ex.printStackTrace();
                 System.exit(1);
             }
-        }
-    }
-
-    /**
-     * This method is called every time the program starts. It ensures the database exists and if not, makes a new one.
-     * @throws IOException
-     * @throws ClassNotFoundException
-     * @param bot the sequence builder.
-     * @see ConfigurationValues
-     */
-    public void firstTimeDatabaseSetup(Bot bot) throws IOException, ClassNotFoundException {
-        JDA jda = bot.getJda();
-        ConfigurationValues configurationValues = bot.getConfigurationValues();
-        Class.forName("org.sqlite.JDBC");
-        if (new File(workingDir + File.separator + "nerds.db").exists()){
-            startRunning(bot);
-            return;
-        }
-        System.err.println("Could not find existing nerds database, creating...");
-        initializeTables();
-        Guild guild = jda.getGuildById(configurationValues.serverId);
-        if (guild == null) throw new InvalidConfigurationException("Invalid server id for id " + configurationValues.serverId + "!");
-        List<TextChannel> channels = guild.getTextChannels();
-        Member botMember = guild.getMember(jda.getSelfUser());
-        if (botMember == null) throw new NullPointerException("Null bot!");
-        AtomicInteger masterCounter = new AtomicInteger(0);
-        List<String> sqlCalls = new CopyOnWriteArrayList<>();
-        final long time = System.currentTimeMillis();
-        final long weekInMillis = (long) 6.048e+8;
-        final long weeksAgo = time - (weekInMillis * configurationValues.weeksOfData);
-        for (TextChannel channel: channels) {
-            Executors.newFixedThreadPool(channels.size()).execute(() -> {
-                if (Arrays.asList(configurationValues.ignoredChannels).contains(channel.getIdLong()) || !channel.canTalk(botMember)) {
-                    masterCounter.getAndIncrement();
-                    return;
-                }
-                List<Message> messages;
-                String currentMessageID = channel.getLatestMessageId();
-                do {
-                    MessageHistory messageHistory = MessageHistory.getHistoryBefore(channel, currentMessageID).limit(100).complete();
-                    messages = messageHistory.getRetrievedHistory();
-                    if (messages.isEmpty()) continue;
-                    currentMessageID = messages.get(messages.size() - 1).getId();
-                    messages = messages.stream().filter(message -> message.getTimeCreated().toEpochSecond() * 1000 - weeksAgo >= 0).collect(Collectors.toList());
-                    for (Message message : messages) {
-                        sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getId(), message.getTimeCreated().toEpochSecond() * 1000));
-                    }
-                }
-                while (!messages.isEmpty());
-                masterCounter.getAndIncrement();
-            });
-        }
-        blockUntilExecuted(masterCounter, channels.size());
-        executeSQLCalls(sqlCalls);
-        startRunning(bot);
-        System.out.println("done!");
-    }
-
-    public void blockUntilExecuted(AtomicInteger masterCounter, int channelCount) {
-        while (masterCounter.get() != channelCount) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored) {}
         }
     }
 }

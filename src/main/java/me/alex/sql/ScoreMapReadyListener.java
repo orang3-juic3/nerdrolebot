@@ -12,5 +12,10 @@ public interface ScoreMapReadyListener {
     /**
      * @param scoreMap A hashmap with User IDs and the amount of messages they have sent.
      */
-    void onScoreMapReadyEvent(HashMap<Long, Long> scoreMap);
+    default void onScoreMapReadyEvent(HashMap<Long, Long> scoreMap) {
+
+    }
+    default void onFullScoreMapReadyEvent(HashMap<Long, Long> fullScoreMap) {
+
+    }
 }

@@ -3,6 +3,7 @@ package me.alex;
 import me.alex.discord.*;
 import me.alex.sql.DatabaseManager;
 import me.alex.sql.MessageUpdater;
+import me.alex.sql.RetrieveLeaderboard;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
@@ -16,22 +17,21 @@ import java.util.EnumSet;
  * It also gets the main loop started.
  */
 public class Bot {
-    private ConfigurationValues configurationValues;
+    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
     private JDA jda;
     private DatabaseManager databaseManager;
     private RoleUpdateQuery roleUpdateQuery;
     private MessageCooldownHandler messageCooldownHandler;
     private MessageUpdater messageUpdater;
     private RoleUpdater roleUpdater;
+    private RetrieveLeaderboard retrieveLeaderboard;
 
 
     /**
      * Does the bot making.
      * <b>Do not use any of the getters or setters without calling this function!</b>
-     * @throws Exception
      */
     public Bot() {
-        configurationValues = ConfigurationValues.getInstance();
         if (configurationValues == null) {
             System.exit(1);
         }
@@ -45,10 +45,13 @@ public class Bot {
             return;
         }
         databaseManager = new DatabaseManager();
-        roleUpdateQuery = new RoleUpdateQuery(configurationValues, databaseManager);
-        roleUpdater = new RoleUpdater(jda, configurationValues, false);
+        roleUpdateQuery = new RoleUpdateQuery(databaseManager);
+        roleUpdater = new RoleUpdater(jda, false);
+        retrieveLeaderboard = new RetrieveLeaderboard();
         roleUpdateQuery.addListener(roleUpdater);
-        messageCooldownHandler = new MessageCooldownHandler(configurationValues, jda);
+        jda.addEventListener(retrieveLeaderboard);
+        roleUpdateQuery.addListener(retrieveLeaderboard);
+        messageCooldownHandler = new MessageCooldownHandler();
         messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
         jda.addEventListener(messageCooldownHandler);
         jda.addEventListener(new ModPX());
@@ -152,5 +155,9 @@ public class Bot {
      */
     public void setMessageUpdater(MessageUpdater messageUpdater) {
         this.messageUpdater = messageUpdater;
+    }
+
+    public RetrieveLeaderboard getRetrieveLeaderboard() {
+        return retrieveLeaderboard;
     }
 }

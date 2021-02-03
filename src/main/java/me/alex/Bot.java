@@ -55,6 +55,7 @@ public class Bot {
         messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
         jda.addEventListener(messageCooldownHandler);
         jda.addEventListener(new ModPX());
+        jda.addEventListener(new PurgeUdemy());
         ForceUpdate forceUpdate = new ForceUpdate(this);
         jda.addEventListener(forceUpdate);
         jda.addEventListener(new CarbonRestImpl());

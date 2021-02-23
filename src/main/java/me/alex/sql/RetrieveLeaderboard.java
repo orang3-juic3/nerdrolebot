@@ -40,6 +40,7 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
             members.removeIf(Objects::isNull);
             List<Member> mentionedMembers = e.getMessage().getMentionedMembers();
             StringBuilder leaderboardMsg = new StringBuilder();
+            String noMessages = "User %s hasn't sent any registered messages!";
             members.removeIf(member -> member.getUser().isBot());
             members.removeIf(member -> scoreMap.getOrDefault(member.getIdLong(), 0L) == 0);
             members.sort(Comparator.comparingLong((member) -> scoreMap.get(member.getIdLong())));
@@ -50,7 +51,12 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
                     e.getChannel().sendMessage("For some reason, you are null.").queue();
                     return;
                 }
-                leaderboardMsg.append(String.format("You are number %s on the leaderboard with %s messages.", members.indexOf(author) + 1, scoreMap.get(author.getUser().getIdLong())));
+                final Long messages = scoreMap.get(author.getUser().getIdLong());
+                if (messages == null) {
+                    leaderboardMsg.append(String.format(noMessages, author.getEffectiveName()));
+                } else {
+                    leaderboardMsg.append(String.format("You are number %s on the leaderboard with %s messages.", members.indexOf(author) + 1, messages));
+                }
                 e.getChannel().sendMessage(leaderboardMsg.toString()).queue();
             } else if (!mentionedMembers.isEmpty()) {
                 for (Member member : mentionedMembers) {
@@ -58,11 +64,11 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
                         leaderboardMsg.append("A mentioned member is null.\n");
                         continue;
                     }
-                    String memberName = member.getEffectiveName();
+                    final String memberName = member.getEffectiveName();
                     int position = members.indexOf(member) + 1;
                     Long messages = scoreMap.get(member.getUser().getIdLong());
                     if (messages == null) {
-                        leaderboardMsg.append("We do not have this user in our database.\n");
+                        leaderboardMsg.append(String.format(noMessages, memberName));
                         continue;
                     }
                     leaderboardMsg.append(String.format("%s is number %s on the leaderboard with %s messages\n",memberName, position, messages));

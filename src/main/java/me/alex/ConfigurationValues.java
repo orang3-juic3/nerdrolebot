@@ -97,6 +97,7 @@ public class ConfigurationValues {
             while ((line = bufferedReader.readLine()) != null) {
                 config.append(line);
             }
+            bufferedReader.close();
             Gson gson = new Gson();
             instance = gson.fromJson(config.toString(), ConfigurationValues.class);
             if (instance.topPercentage > 100 || instance.topPercentage< 0) {

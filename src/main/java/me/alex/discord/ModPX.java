@@ -10,6 +10,8 @@ import java.util.List;
 public class ModPX extends ListenerAdapter {
     @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent e) {
+        if (e.getAuthor().isBot()) return;
+        if (e.getMessage().isWebhookMessage()) return;
         String message = e.getMessage().getContentRaw();
         if (!message.startsWith("!mod")) return;
         List<Member> mentionedMembers = e.getMessage().getMentionedMembers();

@@ -15,6 +15,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * A command that can be executed by a user that has a certain role defined in conf.json that force updates the nerd role list
@@ -77,13 +79,17 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         if(!carryOn) {
             return;
         }
-        RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager,0);
-        roleUpdater.addListener(this);
-        roleUpdateQuery.addListener(roleUpdater);
-        MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
-        messageUpdater.run();
-        e.getChannel().sendMessage(response).queue();
-        roleUpdater.removeListener(this);
+        final ForceUpdate instance = this;
+        ExecutorService service = Executors.newFixedThreadPool(1);
+        service.execute(() -> {
+            RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager,0);
+            roleUpdater.addListener(instance);
+            roleUpdateQuery.addListener(roleUpdater);
+            MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
+            messageUpdater.run();
+            e.getChannel().sendMessage(response).queue();
+            roleUpdater.removeListener(instance);
+        });
     }
 
     /**

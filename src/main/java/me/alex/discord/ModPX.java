@@ -14,17 +14,19 @@ public class ModPX extends ListenerAdapter {
         if (!message.startsWith("!mod")) return;
         List<Member> mentionedMembers = e.getMessage().getMentionedMembers();
         if (mentionedMembers.size() != 1) return;
-        int result = (int) mentionedMembers.get(0).getIdLong() % 3;
+        long result = mentionedMembers.get(0).getIdLong() % 3;
         switch (result) {
-            case 0:
+            case 0L:
                 message = "No";
                 break;
-            case 1:
+            case 1L:
                 message = "Definitely not.";
                 break;
-            case 2:
+            case 2L:
                 message = "Maybe...";
                 break;
+            default:
+                return;
         }
         e.getChannel().sendMessage(message).queue();
     }

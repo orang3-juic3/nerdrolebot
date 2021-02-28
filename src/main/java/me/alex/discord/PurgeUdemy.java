@@ -36,6 +36,6 @@ public class PurgeUdemy extends ListenerAdapter {
                                 "Please contact the moderation team " +
                                 "if you believe this was in error.")
                                 .queue()),
-                        error -> System.err.println("Something went wrong not pog"));
+                        error -> System.err.printf("Error when moderating %s: [Message Content: %s]", author.getName(), message.getContentRaw()));
     }
 }

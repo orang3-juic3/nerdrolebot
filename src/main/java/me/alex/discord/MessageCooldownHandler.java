@@ -34,16 +34,13 @@ public class MessageCooldownHandler extends ListenerAdapter {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
-        if(e.getAuthor().isBot()) {
+        // For the love of god alex stop using so many if statements CONDENSE IT DOWN
+        if(e.getAuthor().isBot()
+                || e.getChannelType() == ChannelType.PRIVATE
+                || !e.getGuild().equals(e.getJDA().getGuildById(configurationValues.serverId))
+                || Arrays.asList(configurationValues.ignoredChannels).contains(e.getChannel().getIdLong())) {
             return;
         }
-        if (e.getChannelType() == ChannelType.PRIVATE) {
-            return;
-        }
-        if (!e.getGuild().equals(e.getJDA().getGuildById(configurationValues.serverId))) {
-            return;
-        }
-        if (Arrays.asList(configurationValues.ignoredChannels).contains(e.getChannel().getIdLong())) return;
         long time = System.currentTimeMillis();
 
 

@@ -61,7 +61,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
         this.scoreMap = scoreMap;
         Guild guild = jda.getGuildById(configurationValues.serverId);
         if (guild == null) {
-            System.err.println(String.format("Unknown server for id \"%s\"!", configurationValues.serverId));
+            System.err.printf("Unknown server for id \"%s\"!%n", configurationValues.serverId);
             return;
         }
         guild.loadMembers().onSuccess(this::memberLoadCallback);
@@ -81,12 +81,12 @@ public class RoleUpdater implements ScoreMapReadyListener {
     public void memberLoadCallback(List<Member> members) {
         Guild guild = this.jda.getGuildById(this.configurationValues.serverId);
         if (guild == null) {
-            System.err.println(String.format("Unknown server for id \"%s\"!", this.configurationValues.serverId));
+            System.err.printf("Unknown server for id \"%s\"!%n", this.configurationValues.serverId);
             return;
         }
         Role role = guild.getRoleById(this.configurationValues.roleId);
         if (role == null) {
-            System.err.println(String.format("Unknown role for id \"%s\"!", this.configurationValues.roleId));
+            System.err.printf("Unknown role for id \"%s\"!%n", this.configurationValues.roleId);
             return;
         }
         List<Member> originalMembers = new ArrayList<>(members);

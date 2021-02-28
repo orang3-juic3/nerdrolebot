@@ -37,6 +37,7 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
     @Override
     public void run() {
         if (safeToAccess) {
+
             roleUpdateQuery.getDatabaseManager().notifyAccess();
             updateMessageTable();
             roleUpdateQuery.getDatabaseManager().notifyStopAccess();
@@ -75,9 +76,11 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
      * @see MessageCooldownHandler
      */
     private void updateMessageTable() {
+        // STOP DROPPING YOUR CONNECTION
+        // https://github.com/brettwooldridge/HikariCP
         ArrayList<String> sqlQueries = messageCooldownHandler.generateSqlCalls();
         String workingDir = Paths.get("").toAbsolutePath().toString();
-        String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db";
+        String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db"; // Why do you keep dropping this, the path won't change.
         Connection conn = null;
         try {
             conn = DriverManager.getConnection(url);

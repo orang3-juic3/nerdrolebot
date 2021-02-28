@@ -33,6 +33,7 @@ public class Bot {
      */
     public Bot() {
         if (configurationValues == null) {
+            // No error printing?
             System.exit(1);
         }
         EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);

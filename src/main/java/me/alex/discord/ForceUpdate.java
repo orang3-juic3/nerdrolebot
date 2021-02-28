@@ -54,6 +54,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
      */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
+        // I wish you would use a proper command handler and a configurable prefix.
         if (!e.getMessage().getContentRaw().equalsIgnoreCase("!update") && !e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")) return;
         if (e.getAuthor().isBot()) return;
         if (e.getChannel().getType() == ChannelType.PRIVATE) {

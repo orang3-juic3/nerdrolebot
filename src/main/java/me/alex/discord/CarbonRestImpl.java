@@ -9,8 +9,7 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.util.EntityUtils;
 
 import javax.annotation.Nonnull;
-import java.io.*;
-import java.nio.file.Paths;
+import java.io.IOException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -19,7 +18,7 @@ public class CarbonRestImpl extends ListenerAdapter {
     @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent e) {
         if (!e.getMessage().getContentRaw().startsWith("!carbon")) return;
-        String message = e.getMessage().getContentRaw().substring(7);
+        String message = e.getMessage().getContentRaw().substring(7); // You have a config file yet the prefix is not in it???
         Gson gson = new Gson();
         if (message.length() == 1) {
             return;
@@ -83,16 +82,20 @@ public class CarbonRestImpl extends ListenerAdapter {
             this.paddingHorizontal = paddingHorizontal;
             this.paddingVertical = paddingVertical;
         }
+
         public void replaceNulls() {
             if (theme == null) {
                 theme = "f";
             }
-            if (code == null) code = "f";
-            if (backgroundColor == null) backgroundColor = "f";
-            if (fontFamily == null) fontFamily = "f";
-            if (language == null) language = "f";
-            if (paddingHorizontal == null) paddingHorizontal = "25px";
-            if (paddingVertical == null) paddingVertical = "25px";
+            // could all be ternary ?
+            code = (code == null) ? "f" : code;
+            backgroundColor = (backgroundColor == null) ? "f" : backgroundColor;
+            fontFamily = (fontFamily == null) ? "f" : fontFamily;
+            language = (language == null) ? "f" : language;
+            paddingHorizontal = (paddingHorizontal == null) ? "25px" : paddingHorizontal;
+            paddingVertical = (paddingVertical == null) ? "25px" : paddingVertical;
+            // https://www.javatuples.org/ could probably shorter this down to one line, although I'm unfamiliar with java tuples.
+
         }
     }
 }

@@ -1,20 +1,18 @@
 package me.alex.discord;
 
-import me.alex.ConfigurationValues;
+import me.alex.Config;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
-import net.dv8tion.jda.api.events.message.guild.GenericGuildMessageEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
-import net.dv8tion.jda.api.exceptions.ContextException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 
 public class PurgeUdemy extends ListenerAdapter {
-    private final ConfigurationValues config = ConfigurationValues.getInstance();
+    private final Config config = Config.getInstance();
     @Override
     public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent e) {
         delete(e.getMessage(), e.getGuild());

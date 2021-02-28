@@ -1,9 +1,9 @@
 package me.alex.sql;
 
 import me.alex.Bot;
-import me.alex.ConfigurationValues;
+import me.alex.Config;
 import me.alex.InvalidConfigurationException;
-import me.alex.Main;
+import me.alex.listeners.DatabaseAccessListener;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
 
@@ -15,8 +15,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -27,10 +27,20 @@ import static me.alex.Main.startRunning;
  * @see DatabaseAccessListener
  */
 public class DatabaseManager {
-
+    /**
+     * This is a global point of access to the ExecutorService where all tasks
+     * that are better off being done async
+     * should be done.
+     * @see ScheduledExecutorService
+     */
+    private static final ScheduledExecutorService service = Executors.newSingleThreadScheduledExecutor();
     private final String workingDir = Paths.get("").toAbsolutePath().toString();
     private final String url = "jdbc:sqlite:" + workingDir + File.separator + "nerds.db";
     private final ArrayList<DatabaseAccessListener> databaseAccessListeners = new ArrayList<>();
+
+    public static ScheduledExecutorService getService() {
+        return service;
+    }
 
     /**
      * @param databaseAccessListener Adds a listener that listens for when the database has been accessed, and when it has stopped being accessed.
@@ -62,14 +72,12 @@ public class DatabaseManager {
 
     /**
      * This method is called every time the program starts. It ensures the database exists and if not, makes a new one.
-     * @throws IOException
-     * @throws ClassNotFoundException
      * @param bot the sequence builder.
-     * @see ConfigurationValues
+     * @see Config
      */
     public void firstTimeDatabaseSetup(Bot bot) throws IOException, ClassNotFoundException {
         JDA jda = bot.getJda();
-        ConfigurationValues configurationValues = bot.getConfigurationValues();
+        Config config = bot.getConfig();
         Class.forName("org.sqlite.JDBC");
         if (new File(workingDir + File.separator + "nerds.db").exists()){
             startRunning(bot);
@@ -77,8 +85,8 @@ public class DatabaseManager {
         }
         System.err.println("Could not find existing nerds database, creating...");
         initializeTables();
-        Guild guild = jda.getGuildById(configurationValues.serverId);
-        if (guild == null) throw new InvalidConfigurationException("Invalid server id for id " + configurationValues.serverId + "!");
+        Guild guild = jda.getGuildById(config.serverId);
+        if (guild == null) throw new InvalidConfigurationException("Invalid server id for id " + config.serverId + "!");
         List<TextChannel> channels = guild.getTextChannels();
         Member botMember = guild.getMember(jda.getSelfUser());
         if (botMember == null) throw new NullPointerException("Null bot!");
@@ -86,10 +94,10 @@ public class DatabaseManager {
         List<String> sqlCalls = new ArrayList<>();
         final long time = System.currentTimeMillis();
         final long weekInMillis = (long) 6.048e+8;
-        final long weeksAgo = time - (weekInMillis * configurationValues.weeksOfData);
+        final long weeksAgo = time - (weekInMillis * config.weeksOfData);
         final HashMap<Long, Long> cooldownMap = new HashMap<>();
         for (TextChannel channel: channels) {
-            if (Arrays.asList(configurationValues.ignoredChannels).contains(channel.getIdLong()) || !channel.canTalk(botMember)) {
+            if (Arrays.asList(config.ignoredChannels).contains(channel.getIdLong()) || !channel.canTalk(botMember)) {
                 masterCounter.getAndIncrement();
                 if (masterCounter.get() == channels.size()) {
                     executeSQLCalls(sqlCalls);
@@ -113,7 +121,7 @@ public class DatabaseManager {
                     if (lastTime == null) { // im such a nink. were iterating backwards in terms of time
                         cooldownMap.put(message.getAuthor().getIdLong(), timeMade);
                         sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getId(), message.getTimeCreated().toEpochSecond() * 1000));
-                    } else if (lastTime - timeMade >= configurationValues.messageCooldown) {
+                    } else if (lastTime - timeMade >= config.messageCooldown) {
                         cooldownMap.put(message.getAuthor().getIdLong(), timeMade);
                         sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getId(), message.getTimeCreated().toEpochSecond() * 1000));
                     }

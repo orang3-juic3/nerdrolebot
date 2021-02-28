@@ -1,7 +1,7 @@
 package me.alex.discord;
 
-import me.alex.ConfigurationValues;
-import me.alex.sql.ScoreMapReadyListener;
+import me.alex.Config;
+import me.alex.listeners.ScoreMapReadyListener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class RoleUpdater implements ScoreMapReadyListener {
 
     private final JDA jda;
-    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
+    private final Config config = Config.getInstance();
     private HashMap<Long, Long> scoreMap;
     private final ArrayList<RoleUpdater.Output> listeners = new ArrayList<>();
     private final boolean command;
@@ -30,7 +30,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
      * @param jda The JDA instance being used for this bot.
      * @param command Checks whether the update is called by a discord user.
      * @see JDA
-     * @see ConfigurationValues
+     * @see Config
      * @see net.dv8tion.jda.api.entities.User
      */
     public RoleUpdater(JDA jda, boolean command) {
@@ -57,11 +57,11 @@ public class RoleUpdater implements ScoreMapReadyListener {
     @Override
     public void onScoreMapReadyEvent(HashMap<Long, Long> scoreMap) {
         if (scoreMap == null || scoreMap.size() == 0) return;
-        scoreMap.keySet().removeAll(Arrays.asList(configurationValues.exemptionList));
+        scoreMap.keySet().removeAll(Arrays.asList(config.exemptionList));
         this.scoreMap = scoreMap;
-        Guild guild = jda.getGuildById(configurationValues.serverId);
+        Guild guild = jda.getGuildById(config.serverId);
         if (guild == null) {
-            System.err.printf("Unknown server for id \"%s\"!%n", configurationValues.serverId);
+            System.err.printf("Unknown server for id \"%s\"!\n", config.serverId);
             return;
         }
         guild.loadMembers().onSuccess(this::memberLoadCallback);
@@ -71,22 +71,22 @@ public class RoleUpdater implements ScoreMapReadyListener {
     /**
      * @param members The full list of members as per Guild#loadMembers
      * This is a callback method that gets called when the list of members in the guild is ready. It then removes or adds the role specified
-     * in ConfigurationValues depending on user's position within the top X percent of message senders, also defined in ConfigurationValues.
+     * in Config depending on user's position within the top X percent of message senders, also defined in Config.
      * If the operation was called by a user, it will give feedback, and detailed feedback will always be available via DM.
      * @see net.dv8tion.jda.api.entities.User
-     * @see ConfigurationValues
+     * @see Config
      * @see net.dv8tion.jda.api.utils.concurrent.Task
      * @see Role
      */
     public void memberLoadCallback(List<Member> members) {
-        Guild guild = this.jda.getGuildById(this.configurationValues.serverId);
+        Guild guild = this.jda.getGuildById(this.config.serverId);
         if (guild == null) {
-            System.err.printf("Unknown server for id \"%s\"!%n", this.configurationValues.serverId);
+            System.err.printf("Unknown server for id \"%s\"!\n", this.config.serverId);
             return;
         }
-        Role role = guild.getRoleById(this.configurationValues.roleId);
+        Role role = guild.getRoleById(this.config.roleId);
         if (role == null) {
-            System.err.printf("Unknown role for id \"%s\"!%n", this.configurationValues.roleId);
+            System.err.printf("Unknown role for id \"%s\"!\n", this.config.roleId);
             return;
         }
         List<Member> originalMembers = new ArrayList<>(members);
@@ -95,7 +95,7 @@ public class RoleUpdater implements ScoreMapReadyListener {
         members.sort(Comparator.comparingLong((member) -> scoreMap.get(member.getIdLong())));
         Collections.reverse(members);
         long messageMembersCount = members.size();
-        long topMembers = (long) Math.ceil(messageMembersCount * (configurationValues.topPercentage /100));
+        long topMembers = (long) Math.ceil(messageMembersCount * (config.topPercentage /100));
         members = members.subList(0, (int) topMembers + 1);
         List<Member> rolesAdded = new ArrayList<>();
         List<Member> rolesRemoved = new ArrayList<>();
@@ -134,10 +134,10 @@ public class RoleUpdater implements ScoreMapReadyListener {
         private final Long time;
 
         /**
-         * @param rolesAdded A list of Members that have had the role defined in ConfigurationValues added to them.
-         * @param rolesRemoved A list of Members that have had the role defined in ConfigurationValues removed from them.
+         * @param rolesAdded A list of Members that have had the role defined in Config added to them.
+         * @param rolesRemoved A list of Members that have had the role defined in Config removed from them.
          * @see Member
-         * @see ConfigurationValues
+         * @see Config
          */
         public RolesChanged(List<Member> rolesAdded, List<Member> rolesRemoved) {
             this.rolesAdded = rolesAdded;
@@ -156,9 +156,9 @@ public class RoleUpdater implements ScoreMapReadyListener {
             embedBuilder.setThumbnail("https://media.discordapp.net/attachments/772164567425220640/789866299618099230/NerdBot.png?width=669&height=669");
             embedBuilder.setColor(new Color(52, 153, 49));
             embedBuilder.setTitle("Update Output:");
-            Role role = jda.getRoleById(configurationValues.roleId);
+            Role role = jda.getRoleById(config.roleId);
             if (role == null) {
-                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true).build();
+                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + config.roleId, true).build();
             }
             embedBuilder.addField("Changes:", "Users given role " + role.getName() + ": " + rolesAdded.size() +
                                  "\nUsers that had role " + role.getName() + " removed: " + rolesRemoved.size(), true);
@@ -170,9 +170,9 @@ public class RoleUpdater implements ScoreMapReadyListener {
          * @see RolesChanged#getOutput()
          */
         public EmbedBuilder getOutputDetailed() {
-            Role role = jda.getRoleById(configurationValues.roleId);
+            Role role = jda.getRoleById(config.roleId);
             if (role == null) {
-                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + configurationValues.roleId, true);
+                return new EmbedBuilder().addField("Error:", "NullPointerException: Could not find role with ID " + config.roleId, true);
             }
 
             EmbedBuilder embedBuilder = new EmbedBuilder();

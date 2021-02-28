@@ -2,6 +2,8 @@ package me.alex;
 
 import me.alex.sql.DatabaseManager;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * The main class of the project.
  */
@@ -14,7 +16,7 @@ public class Main {
      */
     public static void main(String[] args) {
         try {
-            ConfigurationValues.loadConfig();
+            Config.loadConfig();
             Bot bot = new Bot();
             DatabaseManager databaseManager = bot.getDatabaseManager();
             databaseManager.firstTimeDatabaseSetup(bot);
@@ -24,8 +26,9 @@ public class Main {
     }
 
     public static void startRunning(Bot bot) {
-        while (true) {
-            bot.getMessageUpdater().run();
-        }
+        DatabaseManager.getService().scheduleAtFixedRate(() -> bot.getMessageUpdater().run(),
+                0,
+                Config.getInstance().delay,
+                TimeUnit.MILLISECONDS);
     }
 }

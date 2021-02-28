@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import javax.security.auth.login.LoginException;
+import java.io.IOException;
 import java.util.EnumSet;
 
 /**
@@ -17,7 +18,7 @@ import java.util.EnumSet;
  * It also gets the main loop started.
  */
 public class Bot {
-    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
+    private final Config config = Config.getInstance();
     private JDA jda;
     private DatabaseManager databaseManager;
     private RoleUpdateQuery roleUpdateQuery;
@@ -32,12 +33,17 @@ public class Bot {
      * <b>Do not use any of the getters or setters without calling this function!</b>
      */
     public Bot() {
-        if (configurationValues == null) {
-            // No error printing?
-            System.exit(1);
+        if (config == null) {
+            try {
+                throw new InvalidConfigurationException("Config is null! Check that it is formatted correctly.");
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.exit(1);
+            }
+            // No error printing? There you go angus.
         }
         EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
-        JDABuilder jdaBuilder = JDABuilder.create(ConfigurationValues.getInstance().botToken, gatewayIntents);
+        JDABuilder jdaBuilder = JDABuilder.create(Config.getInstance().botToken, gatewayIntents);
         try {
             jda = jdaBuilder.build();
             jda.awaitReady();
@@ -45,9 +51,12 @@ public class Bot {
             e.printStackTrace();
             return;
         }
+        ForceUpdate forceUpdate = new ForceUpdate(this);
+
         databaseManager = new DatabaseManager();
         roleUpdateQuery = new RoleUpdateQuery(databaseManager);
         roleUpdater = new RoleUpdater(jda, false);
+        roleUpdater.addListener(forceUpdate);
         retrieveLeaderboard = new RetrieveLeaderboard();
         roleUpdateQuery.addListener(roleUpdater);
         jda.addEventListener(retrieveLeaderboard);
@@ -57,17 +66,16 @@ public class Bot {
         jda.addEventListener(messageCooldownHandler);
         jda.addEventListener(new ModPX());
         jda.addEventListener(new PurgeUdemy());
-        ForceUpdate forceUpdate = new ForceUpdate(this);
         jda.addEventListener(forceUpdate);
         jda.addEventListener(new CarbonRestImpl());
     }
 
     /**
-     * @return Returns the configurationValues instance.
-     * @see ConfigurationValues
+     * @return Returns the config instance.
+     * @see Config
      */
-    public ConfigurationValues getConfigurationValues() {
-        return configurationValues;
+    public Config getConfig() {
+        return config;
     }
 
 

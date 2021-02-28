@@ -1,4 +1,6 @@
-package me.alex.sql;
+package me.alex.listeners;
+
+import me.alex.sql.RoleUpdateQuery;
 
 import java.util.HashMap;
 

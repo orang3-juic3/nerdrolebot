@@ -12,11 +12,11 @@ import java.util.List;
  * This class is a thread-safe singleton class that reads the configuration JSON file or creates one if one does not exist.
  * Since only one instance can be created, it will appear often in many classes.
  */
-public class ConfigurationValues {
+public class Config {
     /**
      * Returns the only instance of this singleton class.
      */
-    private static ConfigurationValues instance;
+    private static Config instance;
     /**
      * A list of User IDs that are exempt from being affected by any role changes.
      * @see net.dv8tion.jda.api.entities.User
@@ -43,7 +43,7 @@ public class ConfigurationValues {
      */
     public int weeksOfData;
     /**
-     * Usually how often the main loop runs to update the roles, but is also used to signify one time use by some classes in order for a thread to terminate immediately
+     * Usually how often the main loop runs in milliseconds to update the roles, but is also used to signify one time use by some classes in order for a thread to terminate immediately
      * @see me.alex.discord.RoleUpdater
      * @see me.alex.discord.ForceUpdate
      */
@@ -67,7 +67,13 @@ public class ConfigurationValues {
      * The token of the bot.
      */
     public String botToken;
-    private ConfigurationValues() {
+
+    /**
+     * The command prefix
+     */
+    public char prefix;
+
+    private Config() {
     }
     public static void loadConfig() {
         try {
@@ -86,6 +92,7 @@ public class ConfigurationValues {
                 instance.rolesAllowedToUpdate = new Long[] {718236096814645289L,772163720062173214L };
                 instance.ignoredChannels = new Long[] {738006372725293086L};
                 instance.topPercentage = 50;
+                instance.prefix = '!';
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 bufferedWriter.write(gson.toJson(instance));
                 bufferedWriter.close();
@@ -99,7 +106,7 @@ public class ConfigurationValues {
             }
             bufferedReader.close();
             Gson gson = new Gson();
-            instance = gson.fromJson(config.toString(), ConfigurationValues.class);
+            instance = gson.fromJson(config.toString(), Config.class);
             if (instance.topPercentage > 100 || instance.topPercentage< 0) {
                 throw new InvalidConfigurationException("The value top percentage in conf.json cannot be less than 0 or larger than 100!");
             }
@@ -110,10 +117,10 @@ public class ConfigurationValues {
 
     /**
      * This method reads the configuration and assigns values accordingly. In the case of a configuration not existing, it uses default values and creates a configuration.
-     * @return Returns <b>the instance</b> of ConfigurationValues.
+     * @return Returns <b>the instance</b> of Config.
      * @see Gson
      */
-    public static synchronized ConfigurationValues getInstance() {
+    public static synchronized Config getInstance() {
         return instance;
     }
 }

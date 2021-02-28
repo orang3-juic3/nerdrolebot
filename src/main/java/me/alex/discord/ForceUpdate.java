@@ -1,7 +1,8 @@
 package me.alex.discord;
 
 import me.alex.Bot;
-import me.alex.ConfigurationValues;
+import me.alex.Config;
+import me.alex.listeners.DatabaseAccessListener;
 import me.alex.sql.DatabaseManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
@@ -16,15 +17,14 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * A command that can be executed by a user that has a certain role defined in conf.json that force updates the nerd role list
  * @see RoleUpdater
- * @see ConfigurationValues
+ * @see Config
  */
 public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
-    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
+    private final Config config = Config.getInstance();
     private final DatabaseManager databaseManager;
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdater roleUpdater;
@@ -37,7 +37,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
      * @param bot SequenceBuilder provides instances of the required classes to build the threads that can be used to create more instances
      * while still maintaining only one connection to the database at any one time.
      * @see DatabaseManager
-     * @see me.alex.sql.DatabaseAccessListener
+     * @see DatabaseAccessListener
      * @see Bot
      */
     public ForceUpdate(Bot bot) {
@@ -47,7 +47,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     }
 
     /**
-     * This method does one iteration of the cycle that the main class does.
+     * This method does one iteration of the cycle that the main class initiates.
      * @param e The MessageReceivedEvent object received when a user sends a message.
      * @see me.alex.Main
      * @see Bot
@@ -55,24 +55,31 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
         // I wish you would use a proper command handler and a configurable prefix.
-        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!update") && !e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")) return;
+        // command handler? nah im good /s. Good point might make one in the future.
+        final char prefix = Config.getInstance().prefix;
+        if (!e.getMessage().getContentRaw().equalsIgnoreCase(prefix + "update") && !e.getMessage()
+                .getContentRaw()
+                .equalsIgnoreCase(prefix + "updateinfo")) return;
         if (e.getAuthor().isBot()) return;
+        if (e.getMessage().isWebhookMessage()) return;
+
         if (e.getChannel().getType() == ChannelType.PRIVATE) {
-            if (e.getMessage().getContentRaw().equalsIgnoreCase("!update")) {
+            if (e.getMessage().getContentRaw().equalsIgnoreCase(prefix + "update")) {
                 return;
             }
             dmOutput(e);
             return;
         }
-        if (e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")) {
+        if (e.getMessage().getContentRaw().equalsIgnoreCase(prefix + "updateinfo")) {
             e.getChannel().sendMessage("Please dm me this command!").queue();
             return;
         }
-        if (e.getMember() == null) return; // should be after the above if because it will always be null if its a private channel..
+        if (e.getMember() == null) return; // should be after the above if because it will always be null if its a private channel.. good point
+
         List<Role> roles = e.getMember().getRoles();
         boolean carryOn = false;
         for (Role role : roles) { // cleaned up this 'satanic' code at the request of Xemor. That 'satanic' code didn't actually work as well, thank you Xemor.
-            if (Arrays.asList(configurationValues.rolesAllowedToUpdate).contains(role.getIdLong())) {
+            if (Arrays.asList(config.rolesAllowedToUpdate).contains(role.getIdLong())) {
                 carryOn = true;
                 break;
             }
@@ -81,9 +88,10 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
             return;
         }
         final ForceUpdate instance = this;
-        ExecutorService service = Executors.newFixedThreadPool(1);
+        ExecutorService service = DatabaseManager.getService();
+
         service.execute(() -> {
-            RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager,0);
+            RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager);
             roleUpdater.addListener(instance);
             roleUpdateQuery.addListener(roleUpdater);
             MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);

@@ -1,22 +1,22 @@
 package me.alex.sql;
 
 
-import me.alex.ConfigurationValues;
+import me.alex.Config;
+import me.alex.listeners.DatabaseAccessListener;
+import me.alex.listeners.ScoreMapReadyListener;
 
 import java.io.File;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 /**
  * This class deals with querying the SQL database for messages sent.
  */
 public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
-    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
+    private final Config config = Config.getInstance();
     private boolean inQueue = false;
-    private final long sleepTime;
     private boolean safeToAccess = true;
     private final ArrayList<ScoreMapReadyListener> scoreMapReadyListeners = new ArrayList<>();
     private final DatabaseManager databaseManager;
@@ -31,28 +31,17 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     }
 
     /**
-     * The preferred constructor for this class, where the delay is the one defined in ConfigurationValues
+     * The preferred constructor for this class, where the delay is the one defined in Config
      * @param databaseManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
-     * @see ConfigurationValues
+     * @see Config
      * @see DatabaseManager
      * @see DatabaseAccessListener
      */
     public RoleUpdateQuery(DatabaseManager databaseManager) {
         databaseManager.addListener(this);
         this.databaseManager = databaseManager;
-        sleepTime = configurationValues.delay;
     }
 
-    /**
-     * An alternative constructor where the delay is defined by the caller. It is better to use the predefined delay.
-     * @param databaseManager The instance of the DatabaseConnectionManager, which ensures that there are no concurrent connections to the database.
-     * @param sleepTime The amount of time before the thread finishes executing.
-     */
-    public RoleUpdateQuery(DatabaseManager databaseManager, long sleepTime) {
-        databaseManager.addListener(this);
-        this.databaseManager = databaseManager;
-        this.sleepTime = sleepTime;
-    }
 
     /**
      * The run method for the thread that is created by MessageUpdater for this class. It checks whether it is safe to access the database, then queries it.
@@ -68,11 +57,11 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
             databaseManager.notifyAccess();
             setScoreMap();
             databaseManager.notifyStopAccess();
-            try {
+            /*try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
+            }*/
         } else {
             inQueue = true;
         }
@@ -112,7 +101,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
     /**
      * This method makes a HashMap of User IDs and how many messages they've sent in the configured time.
      * Then it notifies listeners that a score map is ready.
-     * @see ConfigurationValues
+     * @see Config
      * @see ScoreMapReadyListener
      * @see me.alex.discord.RoleUpdater
      * @see net.dv8tion.jda.api.entities.User
@@ -126,7 +115,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
             conn = DriverManager.getConnection(url);
             if (conn != null) {
                 long weekInMillis = (long) 6.048e+8;
-                String sql = "SELECT DISTINCT id FROM messages WHERE time >= " + System.currentTimeMillis() + " - " + (weekInMillis * configurationValues.weeksOfData);
+                String sql = "SELECT DISTINCT id FROM messages WHERE time >= " + System.currentTimeMillis() + " - " + (weekInMillis * config.weeksOfData);
                 Statement statement = conn.createStatement();
                 statement.execute(sql);
                 ResultSet resultSet = statement.getResultSet();
@@ -136,7 +125,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
                 }
                 HashMap<Long, Long> allScoreMap = new HashMap<>(scoreMap);
                 for (long i : scoreMap.keySet()) {
-                    sql = String.format("SELECT count(id) FROM messages WHERE time >= %s - %s and id = %s", System.currentTimeMillis(), (weekInMillis * configurationValues.weeksOfData), i);
+                    sql = String.format("SELECT count(id) FROM messages WHERE time >= %s - %s and id = %s", System.currentTimeMillis(), (weekInMillis * config.weeksOfData), i);
                     statement = conn.createStatement();
                     statement.execute(sql);
                     resultSet = statement.getResultSet();

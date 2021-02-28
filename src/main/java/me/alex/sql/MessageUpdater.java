@@ -1,5 +1,6 @@
 package me.alex.sql;
 
+import me.alex.listeners.DatabaseAccessListener;
 import me.alex.discord.MessageCooldownHandler;
 
 import java.io.File;

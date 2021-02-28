@@ -1,6 +1,6 @@
 package me.alex.discord;
 
-import me.alex.ConfigurationValues;
+import me.alex.Config;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.User;
@@ -14,14 +14,14 @@ import java.util.HashMap;
 
 /**
  * A class that stores messages that users have sent before updating the database in memory. Implements a cooldown between messages.
- * @see ConfigurationValues
+ * @see Config
  */
 public class MessageCooldownHandler extends ListenerAdapter {
-    private final ConfigurationValues configurationValues = ConfigurationValues.getInstance();
+    private final Config config = Config.getInstance();
 
     /**
      * @see JDA
-     * @see ConfigurationValues
+     * @see Config
      */
     private final HashMap<User,Long> cooldowns = new HashMap<>();
     private final ArrayList<User> users = new ArrayList<>();
@@ -37,8 +37,8 @@ public class MessageCooldownHandler extends ListenerAdapter {
         // For the love of god alex stop using so many if statements CONDENSE IT DOWN
         if(e.getAuthor().isBot()
                 || e.getChannelType() == ChannelType.PRIVATE
-                || !e.getGuild().equals(e.getJDA().getGuildById(configurationValues.serverId))
-                || Arrays.asList(configurationValues.ignoredChannels).contains(e.getChannel().getIdLong())) {
+                || !e.getGuild().equals(e.getJDA().getGuildById(config.serverId))
+                || Arrays.asList(config.ignoredChannels).contains(e.getChannel().getIdLong())) {
             return;
         }
         long time = System.currentTimeMillis();
@@ -47,7 +47,7 @@ public class MessageCooldownHandler extends ListenerAdapter {
         if (cooldowns.get(e.getAuthor()) == null || cooldowns.get(e.getAuthor()) <= System.currentTimeMillis()) {
             users.add(e.getAuthor());
             timeStamp.add(time);
-            cooldowns.put(e.getAuthor(), time + configurationValues.messageCooldown);
+            cooldowns.put(e.getAuthor(), time + config.messageCooldown);
         }
     }
 

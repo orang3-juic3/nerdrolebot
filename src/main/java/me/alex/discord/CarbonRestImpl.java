@@ -1,6 +1,7 @@
 package me.alex.discord;
 
 import com.google.gson.Gson;
+import me.alex.Config;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.apache.http.HttpResponse;
@@ -17,7 +18,7 @@ import java.util.regex.Pattern;
 public class CarbonRestImpl extends ListenerAdapter {
     @Override
     public void onMessageReceived(@Nonnull MessageReceivedEvent e) {
-        if (!e.getMessage().getContentRaw().startsWith("!carbon")) return;
+        if (!e.getMessage().getContentRaw().startsWith(Config.getInstance().prefix + "carbon")) return;
         String message = e.getMessage().getContentRaw().substring(7); // You have a config file yet the prefix is not in it???
         Gson gson = new Gson();
         if (message.length() == 1) {
@@ -95,6 +96,7 @@ public class CarbonRestImpl extends ListenerAdapter {
             paddingHorizontal = (paddingHorizontal == null) ? "25px" : paddingHorizontal;
             paddingVertical = (paddingVertical == null) ? "25px" : paddingVertical;
             // https://www.javatuples.org/ could probably shorter this down to one line, although I'm unfamiliar with java tuples.
+            // explain
 
         }
     }

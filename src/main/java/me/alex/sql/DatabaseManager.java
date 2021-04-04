@@ -76,7 +76,7 @@ public class DatabaseManager {
      * @see Config
      */
     public void firstTimeDatabaseSetup(Bot bot) throws IOException, ClassNotFoundException {
-        JDA jda = bot.getJda();
+        JDA jda = bot.getJDA();
         Config config = bot.getConfig();
         Class.forName("org.sqlite.JDBC");
         if (new File(workingDir + File.separator + "nerds.db").exists()){

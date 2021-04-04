@@ -72,7 +72,10 @@ public class Config {
      * The command prefix
      */
     public char prefix;
-
+    /**
+     * A list of blacklisted strings
+     */
+    public String[] blacklist;
     private Config() {
     }
     public static void loadConfig() {
@@ -80,6 +83,7 @@ public class Config {
             String workingDir = Paths.get("").toAbsolutePath().toString();
             File f = new File(workingDir + "/conf.json");
             if (f.createNewFile()) {
+                instance = new Config();
                 BufferedWriter bufferedWriter = new BufferedWriter(new PrintWriter(f));
                 // bufferedWriter.write("{\"exemptionList\":[479285497487949853, 230336110637744131],\"weeksOfData\":2,\"roleId\":706554375572684860,\"serverId\":679434326282207238}");
                 instance.exemptionList = new Long[]{266279893543682049L, 230336110637744131L};
@@ -93,6 +97,7 @@ public class Config {
                 instance.ignoredChannels = new Long[] {738006372725293086L};
                 instance.topPercentage = 50;
                 instance.prefix = '!';
+                instance.blacklist = new String[]{"nigga", "nigger","negro", "fag", "faggot", "fagg","udemy.com/course"};
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 bufferedWriter.write(gson.toJson(instance));
                 bufferedWriter.close();
@@ -112,6 +117,7 @@ public class Config {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            System.exit(1);
         }
     }
 

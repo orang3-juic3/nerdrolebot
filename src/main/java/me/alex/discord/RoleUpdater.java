@@ -96,7 +96,10 @@ public class RoleUpdater implements ScoreMapReadyListener {
         Collections.reverse(members);
         long messageMembersCount = members.size();
         long topMembers = (long) Math.ceil(messageMembersCount * (config.topPercentage /100));
-        members = members.subList(0, (int) topMembers + 1);
+        if (members.size() != 1) {
+            members = members.subList(0, (int) topMembers + 1);
+        }
+        // wow gg this literally crashed my debug process ^^
         List<Member> rolesAdded = new ArrayList<>();
         List<Member> rolesRemoved = new ArrayList<>();
         for (Member member : members) {

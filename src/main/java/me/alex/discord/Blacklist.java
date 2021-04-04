@@ -9,9 +9,11 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
-public class PurgeUdemy extends ListenerAdapter {
+public class Blacklist extends ListenerAdapter {
     private final Config config = Config.getInstance();
     @Override
     public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent e) {
@@ -23,14 +25,22 @@ public class PurgeUdemy extends ListenerAdapter {
 
     }
     private void delete(Message message, Guild guild) {
-        if (!message.getContentRaw().contains("udemy.com/course")) return;
+        final String content = message.getContentRaw().replaceAll("[^A-Za-z0-9]", "");
+        boolean shouldReturn = true;
+        for (String i: config.blacklist) {
+            if (content.contains(i)) {
+                shouldReturn = false;
+                break;
+            }
+        }
+        if (shouldReturn) return;
         if (!guild.getId().equals(String.valueOf(config.serverId))) return;
         final User author = message.getAuthor();
         if (Arrays.asList(config.exemptionList).contains(author.getIdLong())) return;
         message.delete()
                 .queue(clazz -> author.openPrivateChannel()
                         .queue(privateChannel -> privateChannel.sendMessage("We deleted your message because it " +
-                                "contained a udemy link. " +
+                                "contained a prohibited keyword. " +
                                 "Please contact the moderation team " +
                                 "if you believe this was in error.")
                                 .queue()),

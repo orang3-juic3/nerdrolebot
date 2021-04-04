@@ -51,21 +51,20 @@ public class Bot {
             e.printStackTrace();
             return;
         }
-        ForceUpdate forceUpdate = new ForceUpdate(this);
-
         databaseManager = new DatabaseManager();
         roleUpdateQuery = new RoleUpdateQuery(databaseManager);
         roleUpdater = new RoleUpdater(jda, false);
+        messageCooldownHandler = new MessageCooldownHandler();
+        ForceUpdate forceUpdate = new ForceUpdate(this);
         roleUpdater.addListener(forceUpdate);
-        retrieveLeaderboard = new RetrieveLeaderboard();
+        retrieveLeaderboard = new RetrieveLeaderboard(jda);
         roleUpdateQuery.addListener(roleUpdater);
         jda.addEventListener(retrieveLeaderboard);
         roleUpdateQuery.addListener(retrieveLeaderboard);
-        messageCooldownHandler = new MessageCooldownHandler();
         messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
         jda.addEventListener(messageCooldownHandler);
         jda.addEventListener(new ModPX());
-        jda.addEventListener(new PurgeUdemy());
+        jda.addEventListener(new Blacklist());
         jda.addEventListener(forceUpdate);
         jda.addEventListener(new CarbonRestImpl());
     }
@@ -99,7 +98,7 @@ public class Bot {
      * @return The JDA instance in which all discord api calls are done from.
      * @see JDA
      */
-    public JDA getJda() {
+    public JDA getJDA() {
         return jda;
     }
 

@@ -16,7 +16,8 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * A command that can be executed by a user that has a certain role defined in conf.json that force updates the nerd role list
@@ -28,7 +29,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     private final DatabaseManager databaseManager;
     private final MessageCooldownHandler messageCooldownHandler;
     private final RoleUpdater roleUpdater;
-    private MessageEmbed response = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
+    private MessageEmbed  response = new EmbedBuilder().addField("Status", "No operations have been completed yet..", true).build();
     private EmbedBuilder detailedResponse = new EmbedBuilder(response);
     private long timeOfUpdate;
     private boolean command;
@@ -43,7 +44,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     public ForceUpdate(Bot bot) {
         databaseManager = bot.getDatabaseManager();
         messageCooldownHandler = bot.getMessageCooldownHandler();
-        roleUpdater = new RoleUpdater(bot.getJda(), true);
+        roleUpdater = new RoleUpdater(bot.getJDA(), true);
     }
 
     /**
@@ -88,17 +89,17 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
             return;
         }
         final ForceUpdate instance = this;
-        ExecutorService service = DatabaseManager.getService();
+        ScheduledExecutorService service = DatabaseManager.getService();
 
-        service.execute(() -> {
+        roleUpdater.removeListener(instance);
+        service.schedule(() -> {
             RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager);
             roleUpdater.addListener(instance);
             roleUpdateQuery.addListener(roleUpdater);
             MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
             messageUpdater.run();
             e.getChannel().sendMessage(response).queue();
-            roleUpdater.removeListener(instance);
-        });
+        }, 0, TimeUnit.MILLISECONDS);
     }
 
     /**

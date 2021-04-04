@@ -1,6 +1,7 @@
 package me.alex;
 
 import me.alex.sql.DatabaseManager;
+import net.dv8tion.jda.api.JDA;
 
 import java.util.concurrent.TimeUnit;
 

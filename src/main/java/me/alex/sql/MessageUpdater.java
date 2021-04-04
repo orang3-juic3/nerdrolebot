@@ -38,7 +38,6 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
     @Override
     public void run() {
         if (safeToAccess) {
-
             roleUpdateQuery.getDatabaseManager().notifyAccess();
             updateMessageTable();
             roleUpdateQuery.getDatabaseManager().notifyStopAccess();
@@ -101,5 +100,4 @@ public class MessageUpdater implements DatabaseAccessListener, Runnable {
             }
         }
     }
-
 }

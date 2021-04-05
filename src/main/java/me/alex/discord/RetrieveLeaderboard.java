@@ -75,7 +75,7 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
             final String name = MarkdownSanitizer.escape(member.getEffectiveName());
             long numberOfMessages = scoreMap.getOrDefault(member.getIdLong(), 0L);
             if (numberOfMessages == 0) contents.append(String.format("%s has not sent any messages.", name));
-            else contents.append(String.format("%s. %s with %s messages\n", this.members.indexOf(member), name, numberOfMessages));
+            else contents.append(String.format("%s. %s with %s messages\n", this.members.indexOf(member) + 1, name, numberOfMessages));
         }
         return new EmbedBuilder(template).addField("Results", contents.toString(), false).build();
     }

@@ -3,7 +3,6 @@ package me.alex;
 import me.alex.discord.*;
 import me.alex.sql.DatabaseManager;
 import me.alex.sql.MessageUpdater;
-import me.alex.sql.RetrieveLeaderboard;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;

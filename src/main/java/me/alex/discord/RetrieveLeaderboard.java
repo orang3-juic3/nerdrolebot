@@ -64,7 +64,7 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
         for (int i = firstIndex; i < lastIndex && i < members.size(); i++) {
             final Member member = members.get(i);
             final String name = MarkdownSanitizer.escape(member.getEffectiveName());
-            builder.append(String.format("%s. %s with %s messages\n", i, name, scoreMap.getOrDefault(member.getIdLong(), 0L)));
+            builder.append(String.format("%s. %s with %s messages\n", i + 1, name, scoreMap.getOrDefault(member.getIdLong(), 0L)));
         }
         return new EmbedBuilder(template).addField("Page " + page, builder.toString(),false).build();
     }

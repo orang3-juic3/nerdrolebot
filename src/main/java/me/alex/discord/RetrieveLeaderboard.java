@@ -57,9 +57,10 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
     }
 
     private MessageEmbed createPage(int page) {
+        
         int firstIndex = (page - 1) * 10;
         int lastIndex = firstIndex + 10;
-        if (firstIndex >= members.size()) return createErrorEmbed();
+        if (firstIndex >= members.size() || firstIndex < 0) return createErrorEmbed();
         final StringBuilder builder = new StringBuilder();
         for (int i = firstIndex; i < lastIndex && i < members.size(); i++) {
             final Member member = members.get(i);

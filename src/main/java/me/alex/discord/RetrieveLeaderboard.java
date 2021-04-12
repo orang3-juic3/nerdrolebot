@@ -69,6 +69,7 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
         }
         return new EmbedBuilder(template).addField("Page " + page, builder.toString(),false).build();
     }
+    // TODO: 13/04/2021 Fix issue with discord parsing \\\\ as \\
 
     private MessageEmbed createEmbed(final List<Member> members) {
         final StringBuilder contents = new StringBuilder();

@@ -108,8 +108,12 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
         }
         if (!membersToDisplay.isEmpty()) { e.getChannel().sendMessage(createEmbed(membersToDisplay)).queue(); return; }
         if (splitMessage[1].matches("[0-9]+")) {
-            int page = Integer.parseInt(splitMessage[1]);
-            e.getChannel().sendMessage(createPage(page)).queue();
+            try {
+                int page = Integer.parseInt(splitMessage[1]);
+                e.getChannel().sendMessage(createPage(page)).queue();
+            } catch (NumberFormatException ex) {
+                e.getChannel().sendMessage(createErrorEmbed()).queue();
+            }
         }
     }
 }

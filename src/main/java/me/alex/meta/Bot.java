@@ -1,4 +1,4 @@
-package me.alex;
+package me.alex.meta;
 
 import me.alex.discord.*;
 import me.alex.sql.DatabaseManager;
@@ -6,10 +6,15 @@ import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
+import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import javax.security.auth.login.LoginException;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.EnumSet;
 
 /**
@@ -17,14 +22,14 @@ import java.util.EnumSet;
  * It also gets the main loop started.
  */
 public class Bot {
-    private final Config config = Config.getInstance();
-    private JDA jda;
+    private Config config = Config.getInstance();
+    private static JDA jda;
     private DatabaseManager databaseManager;
     private RoleUpdateQuery roleUpdateQuery;
     private MessageCooldownHandler messageCooldownHandler;
     private MessageUpdater messageUpdater;
     private RoleUpdater roleUpdater;
-    private RetrieveLeaderboard retrieveLeaderboard;
+    private final RetrieveLeaderboard retrieveLeaderboard;
 
 
     /**
@@ -32,40 +37,50 @@ public class Bot {
      * <b>Do not use any of the getters or setters without calling this function!</b>
      */
     public Bot() {
-        if (config == null) {
-            try {
-                throw new InvalidConfigurationException("Config is null! Check that it is formatted correctly.");
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.exit(1);
-            }
-            // No error printing? There you go angus.
-        }
         EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
-        JDABuilder jdaBuilder = JDABuilder.create(Config.getInstance().botToken, gatewayIntents);
+        JDABuilder jdaBuilder = JDABuilder.create(Config.getInstance().getBotToken(), gatewayIntents).setEventManager(new AnnotatedEventManager());
+        databaseManager = new DatabaseManager();
+        roleUpdateQuery = new RoleUpdateQuery(databaseManager);
+        roleUpdater = new RoleUpdater(false);
+        messageCooldownHandler = new MessageCooldownHandler();
+        ForceUpdate forceUpdate = new ForceUpdate(this);
+        roleUpdater.addListener(forceUpdate);
+        retrieveLeaderboard = new RetrieveLeaderboard();
+        roleUpdateQuery.addListener(roleUpdater);
+        jdaBuilder.addEventListeners(retrieveLeaderboard);
+        roleUpdateQuery.addListener(retrieveLeaderboard);
+        messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
+        jdaBuilder.addEventListeners(messageCooldownHandler, new ModPX(),
+                new Blacklist(),
+                forceUpdate,
+                new CarbonRestImpl(),
+                configReloadListener());
         try {
             jda = jdaBuilder.build();
             jda.awaitReady();
         } catch (LoginException | InterruptedException e) {
             e.printStackTrace();
-            return;
         }
-        databaseManager = new DatabaseManager();
-        roleUpdateQuery = new RoleUpdateQuery(databaseManager);
-        roleUpdater = new RoleUpdater(jda, false);
-        messageCooldownHandler = new MessageCooldownHandler();
-        ForceUpdate forceUpdate = new ForceUpdate(this);
-        roleUpdater.addListener(forceUpdate);
-        retrieveLeaderboard = new RetrieveLeaderboard(jda);
-        roleUpdateQuery.addListener(roleUpdater);
-        jda.addEventListener(retrieveLeaderboard);
-        roleUpdateQuery.addListener(retrieveLeaderboard);
-        messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
-        jda.addEventListener(messageCooldownHandler);
-        jda.addEventListener(new ModPX());
-        jda.addEventListener(new Blacklist());
-        jda.addEventListener(forceUpdate);
-        jda.addEventListener(new CarbonRestImpl());
+
+    }
+    private Object configReloadListener() {
+        return new Object() {
+            @SubscribeEvent
+            public void onGuildMessage(GuildMessageReceivedEvent e) {
+                new Thread(() -> {
+                    if (e.getGuild().getIdLong() != Config.getInstance().getServerId()) return;
+                    if (e.getAuthor().isBot() || e.isWebhookMessage()) return;
+                    if (!e.getMessage().getContentDisplay().equalsIgnoreCase(config.getPrefix() + "reloadconfig")) return;
+                    if (e.getMember() != null) {
+                        if (e.getMember().getRoles().stream().mapToLong(Role::getIdLong).anyMatch(it -> it == 772163720062173214L)) {                        // mega nerd id should b in config...
+                            Config.loadConfig();
+                            config = Config.getInstance();
+                            e.getChannel().sendMessage("" + config.getPrefix()).queue();
+                        }
+                    }
+                }).start();
+            }
+        };
     }
 
     /**
@@ -97,7 +112,7 @@ public class Bot {
      * @return The JDA instance in which all discord api calls are done from.
      * @see JDA
      */
-    public JDA getJDA() {
+    public static JDA getJDA() {
         return jda;
     }
 

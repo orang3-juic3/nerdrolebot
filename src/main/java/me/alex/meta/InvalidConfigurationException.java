@@ -1,4 +1,4 @@
-package me.alex;
+package me.alex.meta;
 
 import java.io.IOException;
 

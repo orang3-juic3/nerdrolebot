@@ -1,8 +1,9 @@
 package me.alex.discord;
 
-import me.alex.Bot;
-import me.alex.Config;
+import me.alex.meta.Bot;
+import me.alex.meta.Config;
 import me.alex.listeners.DatabaseAccessListener;
+import me.alex.meta.Main;
 import me.alex.sql.DatabaseManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
@@ -11,7 +12,7 @@ import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * @see RoleUpdater
  * @see Config
  */
-public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
+public class ForceUpdate implements RoleUpdater.Output {
     private final Config config = Config.getInstance();
     private final DatabaseManager databaseManager;
     private final MessageCooldownHandler messageCooldownHandler;
@@ -44,20 +45,20 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
     public ForceUpdate(Bot bot) {
         databaseManager = bot.getDatabaseManager();
         messageCooldownHandler = bot.getMessageCooldownHandler();
-        roleUpdater = new RoleUpdater(bot.getJDA(), true);
+        roleUpdater = new RoleUpdater(true);
     }
 
     /**
      * This method does one iteration of the cycle that the main class initiates.
      * @param e The MessageReceivedEvent object received when a user sends a message.
-     * @see me.alex.Main
+     * @see Main
      * @see Bot
      */
-    @Override
+    @SubscribeEvent
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
         // I wish you would use a proper command handler and a configurable prefix.
         // command handler? nah im good /s. Good point might make one in the future.
-        final char prefix = Config.getInstance().prefix;
+        final char prefix = Config.getInstance().getPrefix();
         if (!e.getMessage().getContentRaw().equalsIgnoreCase(prefix + "update") && !e.getMessage()
                 .getContentRaw()
                 .equalsIgnoreCase(prefix + "updateinfo")) return;
@@ -80,7 +81,7 @@ public class ForceUpdate extends ListenerAdapter implements RoleUpdater.Output {
         List<Role> roles = e.getMember().getRoles();
         boolean carryOn = false;
         for (Role role : roles) { // cleaned up this 'satanic' code at the request of Xemor. That 'satanic' code didn't actually work as well, thank you Xemor.
-            if (Arrays.asList(config.rolesAllowedToUpdate).contains(role.getIdLong())) {
+            if (Arrays.asList(config.getRolesAllowedToUpdate()).contains(role.getIdLong())) {
                 carryOn = true;
                 break;
             }

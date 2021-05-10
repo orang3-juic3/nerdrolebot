@@ -1,9 +1,9 @@
 package me.alex.discord;
 
 import com.google.gson.Gson;
-import me.alex.Config;
+import me.alex.meta.Config;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
@@ -15,10 +15,11 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class CarbonRestImpl extends ListenerAdapter {
-    @Override
+public class CarbonRestImpl {
+    @SubscribeEvent
     public void onMessageReceived(@Nonnull MessageReceivedEvent e) {
-        if (!e.getMessage().getContentRaw().startsWith(Config.getInstance().prefix + "carbon")) return;
+
+        if (!e.getMessage().getContentRaw().startsWith(Config.getInstance().getPrefix() + "carbon")) return;
         String message = e.getMessage().getContentRaw().substring(7); // You have a config file yet the prefix is not in it???
         Gson gson = new Gson();
         if (message.length() == 1) {

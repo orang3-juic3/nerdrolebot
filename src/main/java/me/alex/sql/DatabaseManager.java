@@ -1,11 +1,12 @@
 package me.alex.sql;
 
-import me.alex.Bot;
-import me.alex.Config;
-import me.alex.InvalidConfigurationException;
+import me.alex.meta.Bot;
+import me.alex.meta.Config;
+import me.alex.meta.InvalidConfigurationException;
 import me.alex.listeners.DatabaseAccessListener;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.*;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,7 +21,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static me.alex.Main.startRunning;
+import static me.alex.meta.Main.startRunning;
 
 /**
  * This is a class that helps deal with maintaining no concurrent connections to the database.
@@ -76,17 +77,17 @@ public class DatabaseManager {
      * @see Config
      */
     public void firstTimeDatabaseSetup(Bot bot) throws IOException, ClassNotFoundException {
-        JDA jda = bot.getJDA();
+        JDA jda = Bot.getJDA();
         Config config = bot.getConfig();
         Class.forName("org.sqlite.JDBC");
         if (new File(workingDir + File.separator + "nerds.db").exists()){
             startRunning(bot);
             return;
         }
-        System.err.println("Could not find existing nerds database, creating...");
+        LogManager.getRootLogger().warn("Could not find existing nerds database, creating...");
         initializeTables();
-        Guild guild = jda.getGuildById(config.serverId);
-        if (guild == null) throw new InvalidConfigurationException("Invalid server id for id " + config.serverId + "!");
+        Guild guild = jda.getGuildById(config.getServerId());
+        if (guild == null) throw new InvalidConfigurationException("Invalid server id for id " + config.getServerId() + "!");
         List<TextChannel> channels = guild.getTextChannels();
         Member botMember = guild.getMember(jda.getSelfUser());
         if (botMember == null) throw new NullPointerException("Null bot!");
@@ -94,10 +95,10 @@ public class DatabaseManager {
         List<String> sqlCalls = new ArrayList<>();
         final long time = System.currentTimeMillis();
         final long weekInMillis = (long) 6.048e+8;
-        final long weeksAgo = time - (weekInMillis * config.weeksOfData);
+        final long weeksAgo = time - (weekInMillis * config.getWeeksOfData());
         final HashMap<Long, Long> cooldownMap = new HashMap<>();
         for (TextChannel channel: channels) {
-            if (Arrays.asList(config.ignoredChannels).contains(channel.getIdLong()) || !channel.canTalk(botMember)) {
+            if (Arrays.asList(config.getIgnoredChannels()).contains(channel.getIdLong()) || !channel.canTalk(botMember)) {
                 masterCounter.getAndIncrement();
                 if (masterCounter.get() == channels.size()) {
                     executeSQLCalls(sqlCalls);
@@ -121,7 +122,7 @@ public class DatabaseManager {
                     if (lastTime == null) { // im such a nink. were iterating backwards in terms of time
                         cooldownMap.put(message.getAuthor().getIdLong(), timeMade);
                         sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getId(), message.getTimeCreated().toEpochSecond() * 1000));
-                    } else if (lastTime - timeMade >= config.messageCooldown) {
+                    } else if (lastTime - timeMade >= config.getMessageCooldown()) {
                         cooldownMap.put(message.getAuthor().getIdLong(), timeMade);
                         sqlCalls.add(String.format("INSERT INTO messages(id, time) VALUES (%s, %s)", message.getAuthor().getId(), message.getTimeCreated().toEpochSecond() * 1000));
                     }

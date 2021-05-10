@@ -1,7 +1,8 @@
 package me.alex.discord;
 
-import me.alex.Config;
-import me.alex.InvalidConfigurationException;
+import me.alex.meta.Bot;
+import me.alex.meta.Config;
+import me.alex.meta.InvalidConfigurationException;
 import me.alex.listeners.ScoreMapReadyListener;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
@@ -9,7 +10,7 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,22 +19,21 @@ import java.time.Instant;
 import java.util.List;
 import java.util.*;
 
-public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapReadyListener {
+public class RetrieveLeaderboard implements ScoreMapReadyListener {
 
     private final String thumbnail = "https://media.discordapp.net/attachments/787351993735708758/790033548525830144/nerdbot2.png?width=586&height=586";
     private final EmbedBuilder template = new EmbedBuilder().setColor(Color.GREEN).setTitle("Leaderboard").setAuthor("Nerd Bot", thumbnail);
     private HashMap<Long, Long> scoreMap = null;
     private final Config config = Config.getInstance();
-    private final JDA jda;
+    private final JDA jda = Bot.getJDA();
     private List<Member> members = new ArrayList<>();
-    public RetrieveLeaderboard(JDA jda) {
-        this.jda = jda;
+    public RetrieveLeaderboard() {
     }
 
     @Override
     synchronized public void onFullScoreMapReadyEvent(HashMap<Long, Long> fullScoreMap) { // so we don't change the fullscore while it is being read.
         scoreMap = fullScoreMap;
-        final Guild guild = jda.getGuildById(config.serverId);
+        final Guild guild = jda.getGuildById(config.getServerId());
         if (guild == null) {
             try {
                 throw new InvalidConfigurationException("Server cannot be null!");
@@ -55,9 +55,8 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
     private MessageEmbed createErrorEmbed() {
         return new EmbedBuilder().setColor(Color.RED).setAuthor("Nerd Bot", thumbnail).setTimestamp(Instant.now()).setTitle("Uh-oh!").addField("Error:", "Invalid page number!", false).build();
     }
-
     private MessageEmbed createPage(int page) {
-        
+
         int firstIndex = (page - 1) * 10;
         int lastIndex = firstIndex + 10;
         if (firstIndex >= members.size() || firstIndex < 0) return createErrorEmbed();
@@ -82,16 +81,18 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
         return new EmbedBuilder(template).addField("Results", contents.toString(), false).build();
     }
 
-    @Override
+    @SubscribeEvent
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
-        final char prefix = Config.getInstance().prefix;
+
+        final char prefix = Config.getInstance().getPrefix();
         if (!e.getMessage().getContentRaw().startsWith(prefix + "lead") && !e.getMessage().getContentRaw().startsWith(prefix + "leaderboard")) return; //ensures it is the right command
         String[] splitMessage = e.getMessage().getContentRaw().split(" "); //splits into arguments
         if (scoreMap == null) {
             e.getChannel().sendMessage("We have no data yet! Try running !update.").queue();
             return;
         }
-        Guild guild = e.getJDA().getGuildById(config.serverId);
+        Guild guild = e.getJDA().getGuildById(config.getServerId());
+
         if (guild == null) {
             try {
                 throw new InvalidConfigurationException("Server cannot be null!");
@@ -115,5 +116,6 @@ public class RetrieveLeaderboard extends ListenerAdapter implements ScoreMapRead
                 e.getChannel().sendMessage(createErrorEmbed()).queue();
             }
         }
+
     }
 }

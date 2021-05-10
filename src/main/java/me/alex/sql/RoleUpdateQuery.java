@@ -1,7 +1,7 @@
 package me.alex.sql;
 
 
-import me.alex.Config;
+import me.alex.meta.Config;
 import me.alex.listeners.DatabaseAccessListener;
 import me.alex.listeners.ScoreMapReadyListener;
 
@@ -115,7 +115,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
             conn = DriverManager.getConnection(url);
             if (conn != null) {
                 long weekInMillis = (long) 6.048e+8;
-                String sql = "SELECT DISTINCT id FROM messages WHERE time >= " + System.currentTimeMillis() + " - " + (weekInMillis * config.weeksOfData);
+                String sql = "SELECT DISTINCT id FROM messages WHERE time >= " + System.currentTimeMillis() + " - " + (weekInMillis * config.getWeeksOfData());
                 Statement statement = conn.createStatement();
                 statement.execute(sql);
                 ResultSet resultSet = statement.getResultSet();
@@ -125,7 +125,7 @@ public class RoleUpdateQuery implements Runnable, DatabaseAccessListener {
                 }
                 HashMap<Long, Long> allScoreMap = new HashMap<>(scoreMap);
                 for (long i : scoreMap.keySet()) {
-                    sql = String.format("SELECT count(id) FROM messages WHERE time >= %s - %s and id = %s", System.currentTimeMillis(), (weekInMillis * config.weeksOfData), i);
+                    sql = String.format("SELECT count(id) FROM messages WHERE time >= %s - %s and id = %s", System.currentTimeMillis(), (weekInMillis * config.getWeeksOfData()), i);
                     statement = conn.createStatement();
                     statement.execute(sql);
                     resultSet = statement.getResultSet();

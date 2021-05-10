@@ -7,6 +7,7 @@ import me.alex.sql.DatabaseManager;
  * @see DatabaseManager
  */
 public interface DatabaseAccessListener {
+
     void onDatabaseAccessEvent();
     void onDatabaseStopAccessEvent();
 }

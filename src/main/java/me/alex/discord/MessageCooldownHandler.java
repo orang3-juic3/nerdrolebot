@@ -1,11 +1,11 @@
 package me.alex.discord;
 
-import me.alex.Config;
+import me.alex.meta.Config;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
-import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -16,7 +16,7 @@ import java.util.HashMap;
  * A class that stores messages that users have sent before updating the database in memory. Implements a cooldown between messages.
  * @see Config
  */
-public class MessageCooldownHandler extends ListenerAdapter {
+public class MessageCooldownHandler {
     private final Config config = Config.getInstance();
 
     /**
@@ -32,13 +32,13 @@ public class MessageCooldownHandler extends ListenerAdapter {
      * @param e The MessageReceivedEvent object received when a user sends a message.
      * @see MessageReceivedEvent
      */
-    @Override
+    @SubscribeEvent
     public void onMessageReceived(@NotNull MessageReceivedEvent e) {
         // For the love of god alex stop using so many if statements CONDENSE IT DOWN
         if(e.getAuthor().isBot()
                 || e.getChannelType() == ChannelType.PRIVATE
-                || !e.getGuild().equals(e.getJDA().getGuildById(config.serverId))
-                || Arrays.asList(config.ignoredChannels).contains(e.getChannel().getIdLong())) {
+                || !e.getGuild().equals(e.getJDA().getGuildById(config.getServerId()))
+                || Arrays.asList(config.getIgnoredChannels()).contains(e.getChannel().getIdLong())) {
             return;
         }
         long time = System.currentTimeMillis();
@@ -47,7 +47,7 @@ public class MessageCooldownHandler extends ListenerAdapter {
         if (cooldowns.get(e.getAuthor()) == null || cooldowns.get(e.getAuthor()) <= System.currentTimeMillis()) {
             users.add(e.getAuthor());
             timeStamp.add(time);
-            cooldowns.put(e.getAuthor(), time + config.messageCooldown);
+            cooldowns.put(e.getAuthor(), time + config.getMessageCooldown());
         }
     }
 

@@ -13,9 +13,14 @@ import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import javax.security.auth.login.LoginException;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.lang.reflect.Method;
 import java.util.EnumSet;
+import java.util.Timer;
+import java.util.TimerTask;
 
 /**
  * A class designed to making the whole building process easier. Registers listeners, passes around instances accordingly etc.
@@ -58,6 +63,18 @@ public class Bot {
         try {
             jda = jdaBuilder.build();
             jda.awaitReady();
+            jda.openPrivateChannelById(479285497487949853L).queue(it -> it.sendMessage("Test").queue());
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            System.setErr(new PrintStream(b));
+            new Timer().scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    if (!b.toString().equals("")) {
+                        jda.openPrivateChannelById(479285497487949853L).queue(it -> it.sendMessage(b.toString()).queue());
+                        b.reset();
+                    }
+                }
+            },0 , 1000);
         } catch (LoginException | InterruptedException e) {
             e.printStackTrace();
         }

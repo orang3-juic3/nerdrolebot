@@ -103,8 +103,7 @@ public class Config {
             }
             mutexNeeded = true;
             try {
-                String workingDir = Paths.get("").toAbsolutePath().toString();
-                File f = new File(workingDir + "/conf.json");
+                File f = new File("conf.json");
                 if (f.createNewFile()) {
                     instance = new Config();
                     BufferedWriter bufferedWriter = new BufferedWriter(new PrintWriter(f));

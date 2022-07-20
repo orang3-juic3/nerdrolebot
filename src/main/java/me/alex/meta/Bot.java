@@ -70,12 +70,12 @@ public class Bot {
         Commands.slash("update","Force updates the database")
                 .addSubcommands(new SubcommandData("info","Info on when the database was last updated.")),
         Commands.slash("mod","The most overpowered command.")
-                .addOption(OptionType.USER, "User", "The user.",true, false),
+                .addOption(OptionType.USER, "user", "The user.",true, false),
         Commands.slash("leaderboard","Shows the top chatters, or your or someone else's place amongst them!")
-                .addOption(OptionType.INTEGER, "Page","The page of the leaderboard to fetch.", true, false)
+                .addOption(OptionType.INTEGER, "page","The page of the leaderboard to fetch.", true, false)
                 .addSubcommands(new SubcommandData("user", "Shows your or another user's place on the leaderboard.")
-                        .addOption(OptionType.USER, "User", "The user", false, false)
-                        .addOptions(new OptionData(OptionType.INTEGER, "Place", "The position in the leaderboard to look at.", false, false).setRequiredRange(1, Integer.MAX_VALUE))),
+                        .addOption(OptionType.USER, "target", "The user", false, false)
+                        .addOptions(new OptionData(OptionType.INTEGER, "place", "The position in the leaderboard to look at.", false, false).setRequiredRange(1, Integer.MAX_VALUE))),
                 Commands.slash("config", "Work with the config.").addSubcommands(new SubcommandData("reload","Reloads the config"))
         ).queue();
     }

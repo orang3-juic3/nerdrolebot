@@ -113,13 +113,13 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
             }
         }
         if ("user".equals(e.getSubcommandName())) {
-            final OptionMapping userMapping = e.getOption("User");
-            OptionMapping posMapping = e.getOption("Place");
+            final OptionMapping userMapping = e.getOption("target");
+            OptionMapping posMapping = e.getOption("place");
             User target;
             if (userMapping == null && posMapping == null) {
                 target = e.getUser();
             } else if (userMapping != null && posMapping != null) {
-                e.replyEmbeds(new EmbedBuilder().setColor(Color.RED).setAuthor("Nerd Bot", thumbnail).setTimestamp(Instant.now()).setTitle("Uh-oh!").addField("Error:", "Invalid args", false).build()).queue();
+                e.replyEmbeds(createErrorEmbed("Invalid args")).queue();
                 return;
             } else if (userMapping != null) {
                 target = userMapping.getAsUser();
@@ -134,7 +134,7 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
             }
             e.replyEmbeds(createEmbed(List.of(member))).queue();
         } else {
-            e.replyEmbeds(createPage(requireNonNull(e.getOption("Page")).getAsInt())).queue();
+            e.replyEmbeds(createPage(requireNonNull(e.getOption("page")).getAsInt())).queue();
         }
 
 

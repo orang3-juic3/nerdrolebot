@@ -5,8 +5,8 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageUpdateEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageUpdateEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
@@ -18,12 +18,14 @@ public class Blacklist {
     private final Config config = Config.getInstance();
 
     @SubscribeEvent
-    public void onGuildMessageReceived(@NotNull GuildMessageReceivedEvent e) {
+    public void onGuildMessageReceived(@NotNull MessageReceivedEvent e) {
+        if (!e.isFromGuild()) return;
         delete(e.getMessage(), e.getGuild());
     }
 
     @SubscribeEvent
-    public void onGuildMessageUpdate(@NotNull GuildMessageUpdateEvent e) {
+    public void onGuildMessageUpdate(@NotNull MessageUpdateEvent e) {
+        if (!e.isFromGuild()) return;
         delete(e.getMessage(), e.getGuild());
 
     }

@@ -2,22 +2,19 @@ package me.alex.discord;
 
 import me.alex.meta.Config;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
+import static java.util.Objects.requireNonNull;
 
 import javax.annotation.Nonnull;
-import java.util.List;
 
 public class ModPX {
     @SubscribeEvent
-    public void onMessageReceived(@Nonnull MessageReceivedEvent e) {
-        if (e.getAuthor().isBot()) return;
-        if (e.getMessage().isWebhookMessage()) return;
-        String message = e.getMessage().getContentRaw();
-        if (!message.startsWith(Config.getInstance().getPrefix() + "mod")) return;
-        List<Member> mentionedMembers = e.getMessage().getMentionedMembers();
-        if (mentionedMembers.size() != 1) return;
-        int result = (int) (mentionedMembers.get(0).getIdLong() % 3);
+    public void onCommand(@Nonnull SlashCommandInteractionEvent e) {
+        if (!e.getName().equals("mod")) return;
+        int result = (int) (requireNonNull(e.getOption("User")).getAsUser().getIdLong() % 3);
+        String message;
         switch (result) {
             case 0:
                 message = "No";
@@ -31,6 +28,6 @@ public class ModPX {
             default:
                 return;
         }
-        e.getChannel().sendMessage(message).queue();
+        e.reply(message).queue();
     }
 }

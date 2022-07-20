@@ -9,8 +9,10 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.utils.MarkdownSanitizer;
 import org.jetbrains.annotations.NotNull;
 
@@ -18,6 +20,7 @@ import java.awt.*;
 import java.time.Instant;
 import java.util.List;
 import java.util.*;
+import static java.util.Objects.requireNonNull;
 
 public class RetrieveLeaderboard implements ScoreMapReadyListener {
 
@@ -82,19 +85,19 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
     }
 
     @SubscribeEvent
-    public void onMessageReceived(@NotNull MessageReceivedEvent e) {
+    public void onMessageReceived(@NotNull SlashCommandInteractionEvent e) {
 
         final char prefix = Config.getInstance().getPrefix();
-        if (!e.getMessage().getContentRaw().startsWith(prefix + "lead") && !e.getMessage().getContentRaw().startsWith(prefix + "leaderboard")) return; //ensures it is the right command
-        String[] splitMessage = e.getMessage().getContentRaw().split(" "); //splits into arguments
+        if (!e.getName().equals("leaderboard")) return;
         if (scoreMap == null) {
-            e.getChannel().sendMessage("We have no data yet! Try running !update.").queue();
+            e.reply("We have no data yet! Try running !update.").queue();
             return;
         }
         Guild guild = e.getJDA().getGuildById(config.getServerId());
 
         if (guild == null) {
             try {
+                e.reply("We encountered an internal exception while handling your request.").queue();
                 throw new InvalidConfigurationException("Server cannot be null!");
             } catch (InvalidConfigurationException ex) {
                 ex.printStackTrace();
@@ -102,20 +105,41 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
                 return;
             }
         }
-        final List<Member> mentionedMembers = e.getMessage().getMentionedMembers();
-        final List<Member> membersToDisplay = new ArrayList<>(mentionedMembers);
-        if (splitMessage.length == 1 && mentionedMembers.isEmpty()) {
-            membersToDisplay.add(e.getMember());
-        }
-        if (!membersToDisplay.isEmpty()) { e.getChannel().sendMessage(createEmbed(membersToDisplay)).queue(); return; }
-        if (splitMessage[1].matches("[0-9]+")) {
-            try {
-                int page = Integer.parseInt(splitMessage[1]);
-                e.getChannel().sendMessage(createPage(page)).queue();
-            } catch (NumberFormatException ex) {
-                e.getChannel().sendMessage(createErrorEmbed()).queue();
+        if ("user".equals(e.getSubcommandName())) {
+            final OptionMapping userMapping = e.getOption("User");
+            OptionMapping posMapping = e.getOption("Place");
+            User target;
+            if (userMapping == null && posMapping == null) {
+                target = e.getUser();
+            } else if (userMapping != null && posMapping != null) {
+                e.replyEmbeds(new EmbedBuilder().setColor(Color.RED).setAuthor("Nerd Bot", thumbnail).setTimestamp(Instant.now()).setTitle("Uh-oh!").addField("Error:", "Invalid args", false).build()).queue();
+                return;
+            } else if (userMapping != null) {
+
+            } else if (posMapping != null) {
+
             }
+            if (guild.getMembers())
+            e.replyEmbeds(createEmbed(List.of(target)))
+
+            final List<Member> mentionedMembers = e.getMessage().getMentions().getMembers();
+            final List<Member> membersToDisplay = new ArrayList<>(mentionedMembers);
+            if (splitMessage.length == 1 && mentionedMembers.isEmpty()) {
+                membersToDisplay.add(e.getMember());
+            }
+            if (!membersToDisplay.isEmpty()) { e.getChannel().sendMessageEmbeds(createEmbed(membersToDisplay)).queue(); return; }
+            if (splitMessage[1].matches("[0-9]+")) {
+                try {
+                    int page = Integer.parseInt(splitMessage[1]);
+                    e.getChannel().sendMessageEmbeds(createPage(page)).queue();
+                } catch (NumberFormatException ex) {
+                    e.getChannel().sendMessageEmbeds(createErrorEmbed()).queue();
+                }
+            }
+        } else {
+            e.replyEmbeds(createPage(requireNonNull(e.getOption("Page")).getAsInt())).queue();
         }
+
 
     }
 }

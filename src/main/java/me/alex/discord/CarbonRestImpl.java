@@ -1,4 +1,4 @@
-package me.alex.discord;
+/*package me.alex.discord;
 
 import com.google.gson.Gson;
 import me.alex.meta.Config;
@@ -102,3 +102,4 @@ public class CarbonRestImpl {
         }
     }
 }
+*/

@@ -2,6 +2,7 @@ package me.alex.meta;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.dv8tion.jda.annotations.ForRemoval;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.apache.logging.log4j.LogManager;
 import org.jetbrains.annotations.NotNull;
@@ -83,7 +84,7 @@ public class Config {
     private String botToken;
 
     /**
-     * The command prefix
+     * The command prefix (now redundant)
      */
     private char prefix;
     /**
@@ -217,6 +218,7 @@ public class Config {
         return threadSafeGet(Config.getInstance().botToken);
     }
 
+    @Deprecated(forRemoval = true)
     public char getPrefix() {
         return threadSafeGet(Config.getInstance().prefix);
     }

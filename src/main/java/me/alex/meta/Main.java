@@ -4,7 +4,6 @@ import me.alex.sql.DatabaseManager;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
-
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -19,7 +18,6 @@ public class Main {
      * @param args Takes in launch arguments.
      */
     public static void main(String[] args) {
-
         System.setProperty("log4j2.configurationFile", Objects.requireNonNull(Main.class.getResource("/log4j.xml")).toString());
         Logger logger = ((Logger)LogManager.getRootLogger());
         logger.setLevel(Level.ALL);

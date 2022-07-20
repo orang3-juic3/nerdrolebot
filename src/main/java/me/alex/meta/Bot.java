@@ -7,17 +7,19 @@ import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import javax.security.auth.login.LoginException;
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.lang.reflect.Method;
 import java.util.EnumSet;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -44,6 +46,12 @@ public class Bot {
     public Bot() {
         EnumSet<GatewayIntent> gatewayIntents = EnumSet.allOf(GatewayIntent.class);
         JDABuilder jdaBuilder = JDABuilder.create(Config.getInstance().getBotToken(), gatewayIntents).setEventManager(new AnnotatedEventManager());
+        try {
+            jda = jdaBuilder.build();
+            jda.awaitReady();
+        } catch (LoginException | InterruptedException e) {
+            e.printStackTrace();
+        }
         databaseManager = new DatabaseManager();
         roleUpdateQuery = new RoleUpdateQuery(databaseManager);
         roleUpdater = new RoleUpdater(false);
@@ -52,38 +60,33 @@ public class Bot {
         roleUpdater.addListener(forceUpdate);
         retrieveLeaderboard = new RetrieveLeaderboard();
         roleUpdateQuery.addListener(roleUpdater);
-        jdaBuilder.addEventListeners(retrieveLeaderboard);
+        jda.addEventListener(retrieveLeaderboard);
         roleUpdateQuery.addListener(retrieveLeaderboard);
         messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
-        jdaBuilder.addEventListeners(messageCooldownHandler, new ModPX(),
+        jda.addEventListener(messageCooldownHandler, new ModPX(),
                 new Blacklist(),
                 forceUpdate,
-                new CarbonRestImpl(),
+                //new CarbonRestImpl(),
                 configReloadListener());
-        try {
-            jda = jdaBuilder.build();
-            jda.awaitReady();
-            jda.openPrivateChannelById(479285497487949853L).queue(it -> it.sendMessage("Test").queue());
-            ByteArrayOutputStream b = new ByteArrayOutputStream();
-            System.setErr(new PrintStream(b));
-            new Timer().scheduleAtFixedRate(new TimerTask() {
-                @Override
-                public void run() {
-                    if (!b.toString().equals("")) {
-                        jda.openPrivateChannelById(479285497487949853L).queue(it -> it.sendMessage(b.toString()).queue());
-                        b.reset();
-                    }
-                }
-            },0 , 1000);
-        } catch (LoginException | InterruptedException e) {
-            e.printStackTrace();
-        }
-
+        createCommands();
+    }
+    private void createCommands() {
+        jda.updateCommands().addCommands(
+        Commands.slash("update","Force updates the database")
+                .addSubcommands(new SubcommandData("info","Info on when the database was last updated.")),
+        Commands.slash("mod","The most overpowered command.")
+                .addOption(OptionType.USER, "User", "The user.",true, false),
+        Commands.slash("leaderboard","Shows the top chatters, or your or someone else's place amongst them!")
+                .addOption(OptionType.INTEGER, "Page","The page of the leaderboard to fetch.", true, false)
+                .addSubcommands(new SubcommandData("user", "Shows your or another user's place on the leaderboard.")
+                        .addOption(OptionType.USER, "User", "The user", false, false)
+                        .addOptions(new OptionData(OptionType.INTEGER, "Place", "The position in the leaderboard to look at.", false, false).setRequiredRange(1, Integer.MAX_VALUE)))).queue();
     }
     private Object configReloadListener() {
         return new Object() {
             @SubscribeEvent
-            public void onGuildMessage(GuildMessageReceivedEvent e) {
+            public void onGuildMessage(MessageReceivedEvent e) {
+                if (!e.isFromGuild()) return;
                 new Thread(() -> {
                     if (e.getGuild().getIdLong() != Config.getInstance().getServerId()) return;
                     if (e.getAuthor().isBot() || e.isWebhookMessage()) return;

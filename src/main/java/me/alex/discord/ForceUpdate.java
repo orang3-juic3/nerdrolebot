@@ -8,12 +8,12 @@ import me.alex.sql.DatabaseManager;
 import me.alex.sql.MessageUpdater;
 import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.ChannelType;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import org.jetbrains.annotations.NotNull;
+import static java.util.Objects.requireNonNull;
 
 import java.util.Arrays;
 import java.util.List;
@@ -55,30 +55,18 @@ public class ForceUpdate implements RoleUpdater.Output {
      * @see Bot
      */
     @SubscribeEvent
-    public void onMessageReceived(@NotNull MessageReceivedEvent e) {
-        // I wish you would use a proper command handler and a configurable prefix.
-        // command handler? nah im good /s. Good point might make one in the future.
-        final char prefix = Config.getInstance().getPrefix();
-        if (!e.getMessage().getContentRaw().equalsIgnoreCase(prefix + "update") && !e.getMessage()
-                .getContentRaw()
-                .equalsIgnoreCase(prefix + "updateinfo")) return;
-        if (e.getAuthor().isBot()) return;
-        if (e.getMessage().isWebhookMessage()) return;
-
-        if (e.getChannel().getType() == ChannelType.PRIVATE) {
-            if (e.getMessage().getContentRaw().equalsIgnoreCase(prefix + "update")) {
-                return;
-            }
-            dmOutput(e);
+    public void onCommand(@NotNull SlashCommandInteractionEvent e) {
+        if (e.getName().equals("update"))
+        if ("info".equalsIgnoreCase(e.getSubcommandName())) {
+            e.replyEmbeds(dmOutput()).queue();
             return;
         }
-        if (e.getMessage().getContentRaw().equalsIgnoreCase(prefix + "updateinfo")) {
-            e.getChannel().sendMessage("Please dm me this command!").queue();
+        if (!e.isFromGuild()) {
+            e.reply("This command must be executed in a guild!").queue();
             return;
         }
-        if (e.getMember() == null) return; // should be after the above if because it will always be null if its a private channel.. good point
 
-        List<Role> roles = e.getMember().getRoles();
+        List<Role> roles = requireNonNull(e.getMember()).getRoles();
         boolean carryOn = false;
         for (Role role : roles) { // cleaned up this 'satanic' code at the request of Xemor. That 'satanic' code didn't actually work as well, thank you Xemor.
             if (Arrays.asList(config.getRolesAllowedToUpdate()).contains(role.getIdLong())) {
@@ -87,11 +75,12 @@ public class ForceUpdate implements RoleUpdater.Output {
             }
         }
         if(!carryOn) {
+            e.reply("You are not authenticated enough to perform this command!").queue();
             return;
         }
+        e.deferReply().queue();
         final ForceUpdate instance = this;
         ScheduledExecutorService service = DatabaseManager.getService();
-
         roleUpdater.removeListener(instance);
         service.schedule(() -> {
             RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager);
@@ -99,7 +88,7 @@ public class ForceUpdate implements RoleUpdater.Output {
             roleUpdateQuery.addListener(roleUpdater);
             MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
             messageUpdater.run();
-            e.getChannel().sendMessage(response).queue();
+            e.replyEmbeds(response).queue();
         }, 0, TimeUnit.MILLISECONDS);
     }
 
@@ -111,7 +100,7 @@ public class ForceUpdate implements RoleUpdater.Output {
         response = messageEmbed;
     }
 
-    public void dmOutput(MessageReceivedEvent e) {
+    public MessageEmbed dmOutput() {
         long millis = System.currentTimeMillis() - timeOfUpdate;
         String timeDiff = RoleUpdater.getTimeFormatted(millis);
         if (command) {
@@ -120,10 +109,7 @@ public class ForceUpdate implements RoleUpdater.Output {
             timeDiff += " | The source was the bot updating the nerd list.";
         }
         detailedResponse.setFooter(timeDiff);
-        if (!e.getMessage().getContentRaw().equalsIgnoreCase("!updateinfo")){
-            return;
-        }
-        e.getChannel().sendMessage(detailedResponse.build()).queue();
+        return detailedResponse.build();
     }
 
     @Override

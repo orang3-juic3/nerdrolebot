@@ -1,9 +1,6 @@
 package me.alex.discord;
 
-import me.alex.meta.Config;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import static java.util.Objects.requireNonNull;
 

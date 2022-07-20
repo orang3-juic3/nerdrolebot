@@ -7,22 +7,17 @@ import me.alex.sql.RoleUpdateQuery;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
-import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 import javax.security.auth.login.LoginException;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.util.EnumSet;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 /**
  * A class designed to making the whole building process easier. Registers listeners, passes around instances accordingly etc.
@@ -80,22 +75,27 @@ public class Bot {
                 .addOption(OptionType.INTEGER, "Page","The page of the leaderboard to fetch.", true, false)
                 .addSubcommands(new SubcommandData("user", "Shows your or another user's place on the leaderboard.")
                         .addOption(OptionType.USER, "User", "The user", false, false)
-                        .addOptions(new OptionData(OptionType.INTEGER, "Place", "The position in the leaderboard to look at.", false, false).setRequiredRange(1, Integer.MAX_VALUE)))).queue();
+                        .addOptions(new OptionData(OptionType.INTEGER, "Place", "The position in the leaderboard to look at.", false, false).setRequiredRange(1, Integer.MAX_VALUE))),
+                Commands.slash("config", "Work with the config.").addSubcommands(new SubcommandData("reload","Reloads the config"))
+        ).queue();
     }
     private Object configReloadListener() {
         return new Object() {
             @SubscribeEvent
-            public void onGuildMessage(MessageReceivedEvent e) {
+            public void onGuildMessage(SlashCommandInteractionEvent e) {
                 if (!e.isFromGuild()) return;
+                if (!e.getCommandPath().equalsIgnoreCase("config/reload")) return;
+                e.deferReply().queue();
                 new Thread(() -> {
-                    if (e.getGuild().getIdLong() != Config.getInstance().getServerId()) return;
-                    if (e.getAuthor().isBot() || e.isWebhookMessage()) return;
-                    if (!e.getMessage().getContentDisplay().equalsIgnoreCase(config.getPrefix() + "reloadconfig")) return;
+                    if (Objects.requireNonNull(e.getGuild()).getIdLong() != Config.getInstance().getServerId()) return;
                     if (e.getMember() != null) {
-                        if (e.getMember().getRoles().stream().mapToLong(Role::getIdLong).anyMatch(it -> it == 772163720062173214L)) {                        // mega nerd id should b in config...
+                        final List<Long> roles = List.of(config.getRolesAllowedToUpdate());
+                        if (e.getMember().getRoles().stream().mapToLong(Role::getIdLong).anyMatch(roles::contains)) {
                             Config.loadConfig();
                             config = Config.getInstance();
-                            e.getChannel().sendMessage("" + config.getPrefix()).queue();
+                            e.reply("Reloaded config file!").queue();
+                        } else {
+                            e.replyEmbeds(RetrieveLeaderboard.createErrorEmbed("You do not have the permission to execute this command!")).queue();
                         }
                     }
                 }).start();

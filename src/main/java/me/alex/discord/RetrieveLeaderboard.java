@@ -24,7 +24,7 @@ import static java.util.Objects.requireNonNull;
 
 public class RetrieveLeaderboard implements ScoreMapReadyListener {
 
-    private final String thumbnail = "https://media.discordapp.net/attachments/787351993735708758/790033548525830144/nerdbot2.png?width=586&height=586";
+    private final static String thumbnail = "https://media.discordapp.net/attachments/787351993735708758/790033548525830144/nerdbot2.png?width=586&height=586";
     private final EmbedBuilder template = new EmbedBuilder().setColor(Color.GREEN).setTitle("Leaderboard").setAuthor("Nerd Bot", thumbnail);
     private HashMap<Long, Long> scoreMap = null;
     private final Config config = Config.getInstance();
@@ -56,7 +56,11 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
     }
 
     private MessageEmbed createErrorEmbed() {
-        return new EmbedBuilder().setColor(Color.RED).setAuthor("Nerd Bot", thumbnail).setTimestamp(Instant.now()).setTitle("Uh-oh!").addField("Error:", "Invalid page number!", false).build();
+        return createErrorEmbed("Invalid page number!");
+    }
+    public static MessageEmbed createErrorEmbed(String msg) {
+        return new EmbedBuilder().setColor(Color.RED).setAuthor("Nerd Bot", thumbnail).setTimestamp(Instant.now()).setTitle("Uh-oh!").addField("Error:", msg, false).build();
+
     }
     private MessageEmbed createPage(int page) {
 
@@ -87,14 +91,17 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
     @SubscribeEvent
     public void onMessageReceived(@NotNull SlashCommandInteractionEvent e) {
 
-        final char prefix = Config.getInstance().getPrefix();
         if (!e.getName().equals("leaderboard")) return;
+        if (!e.isFromGuild() || (e.isFromGuild() && requireNonNull(e.getGuild()).getIdLong() == config.getServerId())) {
+            e.replyEmbeds(createErrorEmbed("This command may only be used in the server!")).queue();
+            //this is because of caching uncertainties
+            return;
+        }
         if (scoreMap == null) {
-            e.reply("We have no data yet! Try running !update.").queue();
+            e.replyEmbeds(createErrorEmbed("We have no data yet! Try running !update.")).queue();
             return;
         }
         Guild guild = e.getJDA().getGuildById(config.getServerId());
-
         if (guild == null) {
             try {
                 e.reply("We encountered an internal exception while handling your request.").queue();
@@ -115,27 +122,17 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
                 e.replyEmbeds(new EmbedBuilder().setColor(Color.RED).setAuthor("Nerd Bot", thumbnail).setTimestamp(Instant.now()).setTitle("Uh-oh!").addField("Error:", "Invalid args", false).build()).queue();
                 return;
             } else if (userMapping != null) {
-
-            } else if (posMapping != null) {
-
+                target = userMapping.getAsUser();
+            } else {
+                e.replyEmbeds(createPage(posMapping.getAsInt())).queue();
+                return;
             }
-            if (guild.getMembers())
-            e.replyEmbeds(createEmbed(List.of(target)))
-
-            final List<Member> mentionedMembers = e.getMessage().getMentions().getMembers();
-            final List<Member> membersToDisplay = new ArrayList<>(mentionedMembers);
-            if (splitMessage.length == 1 && mentionedMembers.isEmpty()) {
-                membersToDisplay.add(e.getMember());
+            final Member member =guild.getMember(target);
+            if (member == null) {
+                e.replyEmbeds(createErrorEmbed("Could not find this user.")).queue();
+                return;
             }
-            if (!membersToDisplay.isEmpty()) { e.getChannel().sendMessageEmbeds(createEmbed(membersToDisplay)).queue(); return; }
-            if (splitMessage[1].matches("[0-9]+")) {
-                try {
-                    int page = Integer.parseInt(splitMessage[1]);
-                    e.getChannel().sendMessageEmbeds(createPage(page)).queue();
-                } catch (NumberFormatException ex) {
-                    e.getChannel().sendMessageEmbeds(createErrorEmbed()).queue();
-                }
-            }
+            e.replyEmbeds(createEmbed(List.of(member))).queue();
         } else {
             e.replyEmbeds(createPage(requireNonNull(e.getOption("Page")).getAsInt())).queue();
         }

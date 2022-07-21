@@ -56,7 +56,7 @@ public class ForceUpdate implements RoleUpdater.Output {
      */
     @SubscribeEvent
     public void onCommand(@NotNull SlashCommandInteractionEvent e) {
-        if (e.getName().equals("update"))
+        if (!e.getName().equals("update")) return;
         if ("info".equalsIgnoreCase(e.getSubcommandName())) {
             e.replyEmbeds(dmOutput()).queue();
             return;
@@ -78,18 +78,20 @@ public class ForceUpdate implements RoleUpdater.Output {
             e.reply("You are not authenticated enough to perform this command!").queue();
             return;
         }
-        e.deferReply().queue();
-        final ForceUpdate instance = this;
-        ScheduledExecutorService service = DatabaseManager.getService();
-        roleUpdater.removeListener(instance);
-        service.schedule(() -> {
-            RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager);
-            roleUpdater.addListener(instance);
-            roleUpdateQuery.addListener(roleUpdater);
-            MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
-            messageUpdater.run();
-            e.replyEmbeds(response).queue();
-        }, 0, TimeUnit.MILLISECONDS);
+        e.deferReply().queue(it -> {
+            final ForceUpdate instance = this;
+            ScheduledExecutorService service = DatabaseManager.getService();
+            roleUpdater.removeListener(instance);
+            service.schedule(() -> {
+                RoleUpdateQuery roleUpdateQuery = new RoleUpdateQuery(databaseManager);
+                roleUpdater.addListener(instance);
+                roleUpdateQuery.addListener(roleUpdater);
+                MessageUpdater messageUpdater = new MessageUpdater(roleUpdateQuery, messageCooldownHandler);
+                messageUpdater.run();
+                e.getHook().sendMessageEmbeds(response).queue();
+            }, 0, TimeUnit.MILLISECONDS);
+        });
+
     }
 
     /**

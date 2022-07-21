@@ -92,7 +92,7 @@ public class RetrieveLeaderboard implements ScoreMapReadyListener {
     public void onMessageReceived(@NotNull SlashCommandInteractionEvent e) {
 
         if (!e.getName().equals("leaderboard")) return;
-        if (!e.isFromGuild() || (e.isFromGuild() && requireNonNull(e.getGuild()).getIdLong() == config.getServerId())) {
+        if (!e.isFromGuild() || !(e.isFromGuild() && requireNonNull(e.getGuild()).getIdLong() == config.getServerId())) {
             e.replyEmbeds(createErrorEmbed("This command may only be used in the server!")).queue();
             //this is because of caching uncertainties
             return;

@@ -67,12 +67,13 @@ public class Bot {
     }
     private void createCommands() {
         jda.updateCommands().addCommands(
-        Commands.slash("update","Force updates the database")
-                .addSubcommands(new SubcommandData("info","Info on when the database was last updated.")),
+        Commands.slash("update","Update commands")
+                .addSubcommands(new SubcommandData("info","Info on when the database was last updated."),
+                        new SubcommandData("force","Force updates the database.")),
         Commands.slash("mod","The most overpowered command.")
                 .addOption(OptionType.USER, "user", "The user.",true, false),
         Commands.slash("leaderboard","Shows the top chatters, or your or someone else's place amongst them!")
-                .addOption(OptionType.INTEGER, "page","The page of the leaderboard to fetch.", true, false)
+                .addSubcommands(new SubcommandData("page", "Show page.").addOption(OptionType.INTEGER, "page","The page of the leaderboard to fetch.", true, false))
                 .addSubcommands(new SubcommandData("user", "Shows your or another user's place on the leaderboard.")
                         .addOption(OptionType.USER, "target", "The user", false, false)
                         .addOptions(new OptionData(OptionType.INTEGER, "place", "The position in the leaderboard to look at.", false, false).setRequiredRange(1, Integer.MAX_VALUE))),
@@ -85,20 +86,23 @@ public class Bot {
             public void onGuildMessage(SlashCommandInteractionEvent e) {
                 if (!e.isFromGuild()) return;
                 if (!e.getCommandPath().equalsIgnoreCase("config/reload")) return;
-                e.deferReply().queue();
-                new Thread(() -> {
+                e.deferReply().queue(it -> new Thread(() -> {
+                    System.out.println(Objects.requireNonNull(e.getGuild()).getIdLong() != Config.getInstance().getServerId());
                     if (Objects.requireNonNull(e.getGuild()).getIdLong() != Config.getInstance().getServerId()) return;
+                    System.out.println(e.getMember() != null);
                     if (e.getMember() != null) {
                         final List<Long> roles = List.of(config.getRolesAllowedToUpdate());
                         if (e.getMember().getRoles().stream().mapToLong(Role::getIdLong).anyMatch(roles::contains)) {
+                            System.out.println(1);
                             Config.loadConfig();
                             config = Config.getInstance();
-                            e.reply("Reloaded config file!").queue();
+                            e.getHook().sendMessage("Reloaded config file!").queue();
                         } else {
-                            e.replyEmbeds(RetrieveLeaderboard.createErrorEmbed("You do not have the permission to execute this command!")).queue();
+                            System.out.println(2);
+                            e.getHook().sendMessageEmbeds(RetrieveLeaderboard.createErrorEmbed("You do not have the permission to execute this command!")).queue();
                         }
                     }
-                }).start();
+                }).start());
             }
         };
     }
